@@ -1,0 +1,4 @@
+[submodule "imageworsener"]
+	path = imageworsener
+	url = ../imageworsener
+	branch = master
