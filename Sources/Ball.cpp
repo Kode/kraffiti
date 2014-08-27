@@ -1,16 +1,15 @@
 #include "Ball.h"
-//#include "Files.h"
+#include "ByteStream.h"
+#include "Image.h"
 #include <vector>
 
-using namespace kmd;
 using namespace kake;
 
 namespace {
 	const int iconHeaderSize = 6;
 	const int iconDirEntrySize = 16;
 	const int bmpHeaderSize = 40;
-	Ball* instance = nullptr;
-
+	
 	int convertByteArrayToInt(std::vector<byte> buffer) {
 		if (buffer.size() != 4) throw new std::exception;
 
@@ -58,18 +57,9 @@ namespace {
 	}
 
 }
-
-Ball* Ball::the() {
-	if (instance == nullptr) instance = new Ball;
-	return instance;
-}
-	
-Image* Ball::scale(int width, int height) {
-	return scale(width, height, transparent, Path()); //Paths::get("."));
-}
-	
-Image* Ball::scale(int width, int height, Color color, Path directory) {
-	Image* image;
+		
+void scale(iw_context* context, int width, int height, Color color) {
+	/*Image* image;
 	
 	//Path customIcon = directory.resolve("icon.png");
 	//if (Files::exists(customIcon)) {
@@ -80,20 +70,26 @@ Image* Ball::scale(int width, int height, Color color, Path directory) {
 	//}
 	Image* scaledImage = image->scale(width, height);
 	if (color != transparent) scaledImage->replaceAlpha(color == white ? 0xffffff00 : 0);
-	return scaledImage;
-}
-	
-void Ball::exportTo(Path file, int width, int height, Color color, Path directory) {
-	scale(width, height, color, directory); // ->save(file);
+	return scaledImage;*/
+
+	iw_set_output_profile(context, IW_PROFILE_TRANSPARENCY); // iw_get_profile_by_fmt(IW_FORMAT_PNG));
+	iw_set_output_depth(context, 32);
+	//figure_out_size_and_density(p, context);
+	iw_set_output_canvas_size(context, width, height);
+	iw_process_image(context);
 }
 
-void Ball::writeIcoHeader(ByteStream& stream) {
+void scale(iw_context* context, int width, int height) {
+	scale(context, width, height, transparent);
+}
+
+void writeIcoHeader(ByteStream& stream) {
 	stream.put(0); stream.put(0); //Reserved. Must always be 0.
 	stream.write(convertShortToByteArrayLE((short)1)); //Specifies image type: 1 for icon (.ICO) image, 2 for cursor (.CUR) image. Other values are invalid.
 	stream.write(convertShortToByteArrayLE((short)4)); //Specifies number of images in the file.
 }
 
-void Ball::writeIconDirEntry(ByteStream& stream, int width, int height, int offset) {
+void writeIconDirEntry(ByteStream& stream, int width, int height, int offset) {
 	stream.put(width == 256 ? 0 : width); //Specifies image width in pixels. Can be any number between 0 and 255. Value 0 means image width is 256 pixels.
 	stream.put(height == 256 ? 0 : height); //Specifies image height in pixels. Can be any number between 0 and 255. Value 0 means image height is 256 pixels.
 	stream.put(0); //Specifies number of colors in the color palette. Should be 0 if the image does not use a color palette.
@@ -104,7 +100,7 @@ void Ball::writeIconDirEntry(ByteStream& stream, int width, int height, int offs
 	stream.write(convertIntToByteArrayLE(offset)); //Specifies the offset of BMP or PNG data from the beginning of the ICO/CUR file
 }
 
-void Ball::writeBMPHeader(ByteStream& stream, int width, int height) {
+void writeBMPHeader(ByteStream& stream, int width, int height) {
 	stream.write(convertIntToByteArrayLE(bmpHeaderSize)); //the size of this header (40 bytes)
 	stream.write(convertIntToByteArrayLE(width)); //the bitmap width in pixels (signed integer).
 	stream.write(convertIntToByteArrayLE(height * 2)); //the bitmap height in pixels (signed integer).
@@ -118,24 +114,47 @@ void Ball::writeBMPHeader(ByteStream& stream, int width, int height) {
 	stream.write(convertIntToByteArrayLE(0)); //the number of important colors used, or 0 when every color is important; generally ignored.
 }
 	
-void Ball::writeBMP(ByteStream& stream, Image* image) {
-	writeBMPHeader(stream, image->width(), image->height());
-	for (int y = image->height() - 1; y >= 0; --y) {
-		for (int x = 0; x < image->width(); ++x) {
+void writeBMP(ByteStream& stream, iw_image* image) {
+	writeBMPHeader(stream, image->width, image->height);
+	for (int y = image->height - 1; y >= 0; --y) {
+		for (int x = 0; x < image->width; ++x) {
 			//stream.put(image->b(x, y));
 			//stream.put(image->g(x, y));
 			//stream.put(image->r(x, y));
 			//stream.put(image->a(x, y));
-			stream.write(convertIntToByteArrayLE(image->argb(x, y)));
+			
+			//stream.write(convertIntToByteArrayLE(image->argb(x, y)));
+			
+			stream.put(image->pixels[y * image->bpr + x * 4 + 2]);
+			stream.put(image->pixels[y * image->bpr + x * 4 + 1]);
+			stream.put(image->pixels[y * image->bpr + x * 4 + 0]);
+			stream.put(image->pixels[y * image->bpr + x * 4 + 3]);
 		}
 	}
 }
 
-int Ball::getBMPSize(int width, int height) {
+int getBMPSize(int width, int height) {
 	return width * height * 4 + bmpHeaderSize;
 }
+
+int stream_seekfn(struct iw_context *ctx, struct iw_iodescr *iodescr, iw_int64 offset, int whence) {
+	//FILE *fp = (FILE*)iodescr->fp;
+	//fseek(fp, (long)offset, whence);
+	ByteStream* stream = (ByteStream*)iodescr->fp;
+	stream->seek(whence);
+	return 1;
+}
+
+int stream_writefn(struct iw_context *ctx, struct iw_iodescr *iodescr, const void *buf, size_t nbytes) {
+	//fwrite(buf, 1, nbytes, (FILE*)iodescr->fp);
+	ByteStream* stream = (ByteStream*)iodescr->fp;
+	for (size_t i = 0; i < nbytes; ++i) {
+		stream->put(((byte*)buf)[i]);
+	}
+	return 1;
+}
 	
-void Ball::exportToWindowsIcon(Path filename, Path directory) {
+void windowsIcon(iw_context* context, const char* filename) {
 	//16x16
 	//32x32
 	//48x48
@@ -149,18 +168,34 @@ void Ball::exportToWindowsIcon(Path filename, Path directory) {
 	writeIconDirEntry(stream, 48, 48, iconHeaderSize + iconDirEntrySize * 4 + getBMPSize(16, 16) + getBMPSize(32, 32));
 	writeIconDirEntry(stream, 256, 256, iconHeaderSize + iconDirEntrySize * 4 + getBMPSize(16, 16) + getBMPSize(32, 32) + getBMPSize(48, 48));
 
-	writeBMP(stream, scale(16, 16, transparent, directory));
-	writeBMP(stream, scale(32, 32, transparent, directory));
-	writeBMP(stream, scale(48, 48, transparent, directory));
+	scale(context, 16, 16, transparent);
+	iw_image img;
+	iw_get_output_image(context, &img);
+	writeBMP(stream, &img);
 
-	scale(256, 256, transparent, directory)->save(stream);
+	scale(context, 32, 32, transparent);
+	iw_get_output_image(context, &img);
+	writeBMP(stream, &img);
+
+	scale(context, 48, 48, transparent);
+	iw_get_output_image(context, &img);
+	writeBMP(stream, &img);
+
+	scale(context, 256, 256, transparent);
+	iw_get_output_image(context, &img);
+	iw_iodescr writedescr;
+	memset(&writedescr, 0, sizeof(struct iw_iodescr));
+	writedescr.write_fn = stream_writefn;
+	writedescr.seek_fn = stream_seekfn;
+	writedescr.fp = &stream;
+	iw_write_file_by_fmt(context, &writedescr, IW_FORMAT_PNG);
 			
 	std::vector<byte> pngSize = convertIntToByteArrayLE(static_cast<int>(stream.size()) - (iconHeaderSize + iconDirEntrySize * 4 + getBMPSize(16, 16) + getBMPSize(32, 32) + getBMPSize(48, 48)));
 	for (int i = 0; i < 4; ++i) stream.set(i + iconHeaderSize + iconDirEntrySize * 3 + 8, pngSize[i]);
 	
-	//stream.save(filename);
+	stream.save(filename);
 }
-	
+/*
 void Ball::exportToMacIcon(Path filename, Path directory) {
 	//16x16
 	//32x32
@@ -200,10 +235,4 @@ void Ball::exportToMacIcon(Path filename, Path directory) {
 	
 	//stream.save(filename);
 }
-
-//#include "hexball.h"
-
-Ball::Ball() {
-//	ball = new Image(hex_array, sizeof(hex_array));
-	ball = nullptr;
-}
+*/

@@ -1,3 +1,4 @@
+#include "Ball.h"
 #include <imagew.h>
 #include <memory.h>
 #include <stdio.h>
@@ -71,7 +72,7 @@ namespace {
 
 int main(int argc, char** argv) {
 	const char* in = "ball.png";
-	const char* out = "ball2.png";
+	const char* out = "ball.ico";
 
 	iw_context* context = iw_create_context(nullptr);
 	
@@ -83,7 +84,7 @@ int main(int argc, char** argv) {
 	iw_read_file_by_fmt(context, &readdescr, IW_FORMAT_PNG);
 	fclose((FILE*)readdescr.fp);
 
-	iw_set_output_profile(context, iw_get_profile_by_fmt(IW_FORMAT_PNG));
+	/*iw_set_output_profile(context, iw_get_profile_by_fmt(IW_FORMAT_PNG));
 	iw_set_output_depth(context, 32);
 	//figure_out_size_and_density(p, context);
 	iw_set_output_canvas_size(context, 256, 256);
@@ -95,5 +96,7 @@ int main(int argc, char** argv) {
 	writedescr.seek_fn = my_seekfn;
 	writedescr.fp = (void*)fopen(out, "wb");
 	iw_write_file_by_fmt(context, &writedescr, IW_FORMAT_PNG);
-	fclose((FILE*)writedescr.fp);
+	fclose((FILE*)writedescr.fp);*/
+
+	windowsIcon(context, out);
 }
