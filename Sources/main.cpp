@@ -2,6 +2,7 @@
 #include <imagew.h>
 #include <memory.h>
 #include <stdio.h>
+#include <string>
 
 namespace {
 	unsigned char input_initial_bytes[12];
@@ -70,33 +71,72 @@ namespace {
 	}
 }
 
-int main(int argc, char** argv) {
-	const char* in = "ball.png";
-	const char* out = "ball.ico";
+bool startsWith(std::string a, std::string b) {
+	return a.substr(0, b.size()) == b;
+}
 
-	iw_context* context = iw_create_context(nullptr);
-	
-	iw_iodescr readdescr;
-	memset(&readdescr, 0, sizeof(struct iw_iodescr));
-	readdescr.read_fn = my_readfn;
-	readdescr.getfilesize_fn = my_getfilesizefn;
-	readdescr.fp = (void*)fopen(in, "rb");
-	iw_read_file_by_fmt(context, &readdescr, IW_FORMAT_PNG);
-	fclose((FILE*)readdescr.fp);
-
-	/*iw_set_output_profile(context, iw_get_profile_by_fmt(IW_FORMAT_PNG));
+void writeImage(iw_context* context, const char* filename, int width, int height, int fmt) {
+	iw_set_output_profile(context, iw_get_profile_by_fmt(fmt) & ~IW_PROFILE_16BPS);
 	iw_set_output_depth(context, 32);
 	//figure_out_size_and_density(p, context);
-	iw_set_output_canvas_size(context, 256, 256);
+	iw_set_output_canvas_size(context, width, height);
 	iw_process_image(context);
 
 	iw_iodescr writedescr;
 	memset(&writedescr, 0, sizeof(struct iw_iodescr));
 	writedescr.write_fn = my_writefn;
 	writedescr.seek_fn = my_seekfn;
-	writedescr.fp = (void*)fopen(out, "wb");
-	iw_write_file_by_fmt(context, &writedescr, IW_FORMAT_PNG);
-	fclose((FILE*)writedescr.fp);*/
+	writedescr.fp = (void*)fopen(filename, "wb");
+	iw_write_file_by_fmt(context, &writedescr, fmt);
+	fclose((FILE*)writedescr.fp);
+}
 
-	windowsIcon(context, out);
+int main(int argc, char** argv) {
+	std::string from = "ball.png";
+	std::string to = "output.png";
+	std::string format = "png";
+	int width = 256;
+	int height = 256;
+
+	for (int i = 1; i < argc; ++i) {
+		std::string arg(argv[i]);
+
+		if (startsWith(arg, "from=")) from = arg.substr(5);
+		else if (startsWith(arg, "to=")) to = arg.substr(3);
+		else if (startsWith(arg, "format=")) format = arg.substr(7);
+		else if (startsWith(arg, "width=")) {
+			std::string substring = arg.substr(6);
+			width = atoi(substring.c_str());
+		}
+		else if (startsWith(arg, "height=")) {
+			std::string substring = arg.substr(7);
+			height = atoi(substring.c_str());
+		}
+		else {
+			// Unknown parameter
+		}
+	}
+	
+	iw_context* context = iw_create_context(nullptr);
+
+	iw_iodescr readdescr;
+	memset(&readdescr, 0, sizeof(struct iw_iodescr));
+	readdescr.read_fn = my_readfn;
+	readdescr.getfilesize_fn = my_getfilesizefn;
+	readdescr.fp = (void*)fopen(from.c_str(), "rb");
+	iw_read_file_by_fmt(context, &readdescr, IW_FORMAT_PNG);
+	fclose((FILE*)readdescr.fp);
+
+	if (format == "png") {
+		writeImage(context, to.c_str(), width, height, IW_FORMAT_PNG);
+	}
+	else if (format == "ico") {
+		windowsIcon(context, to.c_str());
+	}
+	else if (format == "icon") {
+		macIcon(context, to.c_str());
+	}
+	else {
+		// Unknown format
+	}
 }
