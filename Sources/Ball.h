@@ -7,3 +7,4 @@ enum Color {
 };
 	
 void windowsIcon(iw_context* context, const char* filename);
+void macIcon(iw_context* context, const char* filename);

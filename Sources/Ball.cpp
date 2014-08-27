@@ -195,30 +195,43 @@ void windowsIcon(iw_context* context, const char* filename) {
 	
 	stream.save(filename);
 }
-/*
-void Ball::exportToMacIcon(Path filename, Path directory) {
+
+void macIcon(iw_context* context, const char* filename) {
 	//16x16
 	//32x32
 	//128x128
 	//256x256
 	//512x512
 	//1024x1024
-
+	
 	ByteStream stream;
+
+	iw_iodescr writedescr;
+	memset(&writedescr, 0, sizeof(struct iw_iodescr));
+	writedescr.write_fn = stream_writefn;
+	writedescr.seek_fn = stream_seekfn;
+	writedescr.fp = &stream;
+
 	stream.put('i'); stream.put('c'); stream.put('n'); stream.put('s');
 	stream.put('-'); stream.put('-'); stream.put('-'); stream.put('-');
 			
 	stream.put('i'); stream.put('c'); stream.put('0'); stream.put('8');
 	stream.put('-'); stream.put('-'); stream.put('-'); stream.put('-');
-	scale(256, 256, transparent, directory)->save(stream);
+	scale(context, 256, 256, transparent);
+	iw_write_file_by_fmt(context, &writedescr, IW_FORMAT_PNG);
+	
 	int icon08size = static_cast<int>(stream.size() - 8);
 	stream.put('i'); stream.put('c'); stream.put('0'); stream.put('9');
 	stream.put('-'); stream.put('-'); stream.put('-'); stream.put('-');
-	scale(512, 512, transparent, directory)->save(stream);
+	scale(context, 512, 512, transparent);
+	iw_write_file_by_fmt(context, &writedescr, IW_FORMAT_PNG);
+	
 	int icon09size = static_cast<int>(stream.size() - icon08size - 8);
 	stream.put('i'); stream.put('c'); stream.put('1'); stream.put('0');
 	stream.put('-'); stream.put('-'); stream.put('-'); stream.put('-');
-	scale(1024, 1024, transparent, directory)->save(stream);
+	scale(context, 1024, 1024, transparent);
+	iw_write_file_by_fmt(context, &writedescr, IW_FORMAT_PNG);
+	
 	int icon10size = static_cast<int>(stream.size() - icon09size - icon08size - 8);
 	
 	std::vector<byte> size = convertIntToByteArray(static_cast<int>(stream.size()));
@@ -233,6 +246,5 @@ void Ball::exportToMacIcon(Path filename, Path directory) {
 	size = convertIntToByteArray(icon10size);
 	for (int i = 0; i < 4; ++i) stream.set(icon08size + icon09size + 8 + 4 + i, size[i]);
 	
-	//stream.save(filename);
+	stream.save(filename);
 }
-*/
