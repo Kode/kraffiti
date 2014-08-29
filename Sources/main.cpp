@@ -95,8 +95,8 @@ int main(int argc, char** argv) {
 	std::string from = "ball.png";
 	std::string to = "output.png";
 	std::string format = "png";
-	int width = 256;
-	int height = 256;
+	int width = -1;
+	int height = -1;
 
 	for (int i = 1; i < argc; ++i) {
 		std::string arg(argv[i]);
@@ -126,6 +126,9 @@ int main(int argc, char** argv) {
 	readdescr.fp = (void*)fopen(from.c_str(), "rb");
 	iw_read_file_by_fmt(context, &readdescr, IW_FORMAT_PNG);
 	fclose((FILE*)readdescr.fp);
+
+	if (width < 0) width = iw_get_value(context, IW_VAL_INPUT_WIDTH);
+	if (height < 0) height = iw_get_value(context, IW_VAL_INPUT_HEIGHT);
 
 	if (format == "png") {
 		writeImage(context, to.c_str(), width, height, IW_FORMAT_PNG);
