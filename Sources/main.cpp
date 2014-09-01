@@ -97,21 +97,9 @@ int main(int argc, char** argv) {
 	bool keepaspect = false;
 	unsigned backgroundColor = 0;
 	unsigned transparentColor = 0;
-	
-	iw_context* context = iw_create_context(nullptr);
-
-	iw_iodescr readdescr;
-	memset(&readdescr, 0, sizeof(struct iw_iodescr));
-	readdescr.read_fn = my_readfn;
-	readdescr.getfilesize_fn = my_getfilesizefn;
-	readdescr.fp = (void*)fopen(from.c_str(), "rb");
-	iw_read_file_by_fmt(context, &readdescr, IW_FORMAT_PNG);
-	fclose((FILE*)readdescr.fp);
-
-	int originalWidth = iw_get_value(context, IW_VAL_INPUT_WIDTH);
-	int originalHeight = iw_get_value(context, IW_VAL_INPUT_HEIGHT);
-	int width = originalWidth;
-	int height = originalHeight;
+	int width = -1;
+	int height = -1;
+	int scale = 1;
 
 	for (int i = 1; i < argc; ++i) {
 		std::string arg(argv[i]);
@@ -129,9 +117,7 @@ int main(int argc, char** argv) {
 		}
 		else if (startsWith(arg, "scale=")) {
 			std::string substring = arg.substr(6);
-			int value = atoi(substring.c_str());
-			width *= value;
-			height *= value;
+			scale = atoi(substring.c_str());
 		}
 		else if (startsWith(arg, "transparent=")) {
 			dotransparency = true;
@@ -158,6 +144,25 @@ int main(int argc, char** argv) {
 			// Unknown parameter
 		}
 	}
+
+	iw_context* context = iw_create_context(nullptr);
+
+	iw_iodescr readdescr;
+	memset(&readdescr, 0, sizeof(struct iw_iodescr));
+	readdescr.read_fn = my_readfn;
+	readdescr.getfilesize_fn = my_getfilesizefn;
+	readdescr.fp = (void*)fopen(from.c_str(), "rb");
+	iw_read_file_by_fmt(context, &readdescr, IW_FORMAT_PNG);
+	fclose((FILE*)readdescr.fp);
+
+	int originalWidth = iw_get_value(context, IW_VAL_INPUT_WIDTH);
+	int originalHeight = iw_get_value(context, IW_VAL_INPUT_HEIGHT);
+	if (scale != 1) {
+		width = originalWidth * scale;
+		height = originalHeight * scale;
+	}
+	if (width < 0) width = originalWidth;
+	if (height < 0) height = originalHeight;
 
 	if (dobackground) {
 		iw_color background;
@@ -195,7 +200,7 @@ int main(int argc, char** argv) {
 		}
 		iw_process_image(context);
 	}
-
+	
 	if (dotransparency) {
 		transparent(context, transparentColor);
 	}
