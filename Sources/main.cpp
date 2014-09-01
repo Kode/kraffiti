@@ -158,6 +158,7 @@ int main(int argc, char** argv) {
 	iw_set_allow_opt(context, IW_OPT_PALETTE, 0);
 	iw_set_allow_opt(context, IW_OPT_STRIP_ALPHA, 0);
 	iw_set_allow_opt(context, IW_OPT_GRAYSCALE, 0);
+	iw_set_allow_opt(context, IW_OPT_BINARY_TRNS, 0);
 	int originalWidth = iw_get_value(context, IW_VAL_INPUT_WIDTH);
 	int originalHeight = iw_get_value(context, IW_VAL_INPUT_HEIGHT);
 	if (scale != 1) {
