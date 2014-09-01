@@ -79,17 +79,21 @@ void scale(iw_context* context, int width, int height) {
 
 	int originalWidth = iw_get_value(context, IW_VAL_INPUT_WIDTH);
 	int originalHeight = iw_get_value(context, IW_VAL_INPUT_HEIGHT);
-	if (width / height != originalWidth / originalHeight) {
+	double w = width;
+	double h = height;
+	double ow = originalWidth;
+	double oh = originalHeight;
+	if (w / h != ow / oh) {
 		double scale = 1;
-		if (originalWidth / originalHeight > width / height) {
-			scale = (double)width / (double)originalWidth;
+		if (ow / oh > w / h) {
+			scale = w / ow;
 		}
 		else {
-			scale = (double)height / (double)originalHeight;
+			scale = h / oh;
 		}
-		iw_set_value_dbl(context, IW_VAL_TRANSLATE_X, width / 2.0 - originalWidth * scale / 2.0);
-		iw_set_value_dbl(context, IW_VAL_TRANSLATE_Y, height / 2.0 - originalHeight * scale / 2.0);
-		iw_set_output_image_size(context, originalWidth * scale, originalHeight * scale);
+		iw_set_value_dbl(context, IW_VAL_TRANSLATE_X, w / 2.0 - ow * scale / 2.0);
+		iw_set_value_dbl(context, IW_VAL_TRANSLATE_Y, h / 2.0 - oh * scale / 2.0);
+		iw_set_output_image_size(context, ow * scale, oh * scale);
 	}
 
 	iw_process_image(context);
