@@ -1,4 +1,5 @@
-#include "Ball.h"
+#include "Icons.h"
+#include "Preprocessor.h"
 #include <imagew.h>
 #include <memory.h>
 #include <stdio.h>
@@ -76,12 +77,6 @@ bool startsWith(std::string a, std::string b) {
 }
 
 void writeImage(iw_context* context, const char* filename, int width, int height, int fmt) {
-	iw_set_output_profile(context, iw_get_profile_by_fmt(fmt) & ~IW_PROFILE_16BPS);
-	iw_set_output_depth(context, 32);
-	//figure_out_size_and_density(p, context);
-	iw_set_output_canvas_size(context, width, height);
-	iw_process_image(context);
-
 	iw_iodescr writedescr;
 	memset(&writedescr, 0, sizeof(struct iw_iodescr));
 	writedescr.write_fn = my_writefn;
@@ -95,8 +90,28 @@ int main(int argc, char** argv) {
 	std::string from = "ball.png";
 	std::string to = "output.png";
 	std::string format = "png";
-	int width = -1;
-	int height = -1;
+	bool pointSampling = false;
+	bool doprealpha = false;
+	bool dobackground = false;
+	bool dotransparency = false;
+	bool keepaspect = false;
+	unsigned backgroundColor = 0;
+	unsigned transparentColor = 0;
+	
+	iw_context* context = iw_create_context(nullptr);
+
+	iw_iodescr readdescr;
+	memset(&readdescr, 0, sizeof(struct iw_iodescr));
+	readdescr.read_fn = my_readfn;
+	readdescr.getfilesize_fn = my_getfilesizefn;
+	readdescr.fp = (void*)fopen(from.c_str(), "rb");
+	iw_read_file_by_fmt(context, &readdescr, IW_FORMAT_PNG);
+	fclose((FILE*)readdescr.fp);
+
+	int originalWidth = iw_get_value(context, IW_VAL_INPUT_WIDTH);
+	int originalHeight = iw_get_value(context, IW_VAL_INPUT_HEIGHT);
+	int width = originalWidth;
+	int height = originalHeight;
 
 	for (int i = 1; i < argc; ++i) {
 		std::string arg(argv[i]);
@@ -112,23 +127,78 @@ int main(int argc, char** argv) {
 			std::string substring = arg.substr(7);
 			height = atoi(substring.c_str());
 		}
+		else if (startsWith(arg, "scale=")) {
+			std::string substring = arg.substr(6);
+			int value = atoi(substring.c_str());
+			width *= value;
+			height *= value;
+		}
+		else if (startsWith(arg, "transparent=")) {
+			dotransparency = true;
+			std::string substring = arg.substr(12);
+			transparentColor = static_cast<unsigned>(strtoll(substring.c_str(), NULL, 16));
+		}
+		else if (startsWith(arg, "background=")) {
+			dobackground = true;
+			std::string substring = arg.substr(11);
+			backgroundColor = static_cast<unsigned>(strtoll(substring.c_str(), NULL, 16));
+		}
+		else if (arg == "prealpha") {
+			doprealpha = true;
+		}
+		else if (startsWith(arg, "filter=")) {
+			if (arg.substr(7) == "nearest") {
+				pointSampling = true;
+			}
+		}
+		else if (arg == "keepaspect") {
+			keepaspect = true;
+		}
 		else {
 			// Unknown parameter
 		}
 	}
-	
-	iw_context* context = iw_create_context(nullptr);
 
-	iw_iodescr readdescr;
-	memset(&readdescr, 0, sizeof(struct iw_iodescr));
-	readdescr.read_fn = my_readfn;
-	readdescr.getfilesize_fn = my_getfilesizefn;
-	readdescr.fp = (void*)fopen(from.c_str(), "rb");
-	iw_read_file_by_fmt(context, &readdescr, IW_FORMAT_PNG);
-	fclose((FILE*)readdescr.fp);
+	if (dobackground) {
+		iw_color background;
+		background.c[IW_CHANNELTYPE_RED] = ((backgroundColor & 0xff000000) >> 24) / 255.0;
+		background.c[IW_CHANNELTYPE_GREEN] = ((backgroundColor & 0xff0000) >> 16) / 255.0;
+		background.c[IW_CHANNELTYPE_BLUE] = ((backgroundColor & 0xff00) >> 8) / 255.0;
+		background.c[IW_CHANNELTYPE_ALPHA] = (backgroundColor & 0xff) / 255.0;
+		iw_set_apply_bkgd_2(context, &background);
+	}
 
-	if (width < 0) width = iw_get_value(context, IW_VAL_INPUT_WIDTH);
-	if (height < 0) height = iw_get_value(context, IW_VAL_INPUT_HEIGHT);
+	if (pointSampling) {
+		iw_set_resize_alg(context, 0, IW_RESIZETYPE_NEAREST, 0, 0, 0);
+	}
+
+	if (format != "ico" && format != "icns") {
+		iw_set_output_profile(context, iw_get_profile_by_fmt(IW_FORMAT_PNG) & ~IW_PROFILE_16BPS);
+		iw_set_output_depth(context, 8);
+		//figure_out_size_and_density(p, context);
+		iw_set_output_canvas_size(context, width, height);
+		if (keepaspect && width / height != originalWidth / originalHeight) {
+			double scale = 1;
+			if (originalWidth / originalHeight > width / height) {
+				scale = (double)width / (double)originalWidth;
+			}
+			else {
+				scale = (double)height / (double)originalHeight;
+			}
+			iw_set_value_dbl(context, IW_VAL_TRANSLATE_X, width / 2.0 - originalWidth * scale / 2.0);
+			iw_set_value_dbl(context, IW_VAL_TRANSLATE_Y, height / 2.0 - originalHeight * scale / 2.0);
+			iw_set_output_image_size(context, originalWidth * scale, originalHeight * scale);
+		}
+		iw_process_image(context);
+	}
+
+	if (dotransparency) {
+		transparent(context, transparentColor);
+	}
+
+	if (doprealpha && !dobackground) {
+		prealpha(context);
+	}
 
 	if (format == "png") {
 		writeImage(context, to.c_str(), width, height, IW_FORMAT_PNG);
@@ -136,7 +206,7 @@ int main(int argc, char** argv) {
 	else if (format == "ico") {
 		windowsIcon(context, to.c_str());
 	}
-	else if (format == "icon") {
+	else if (format == "icns") {
 		macIcon(context, to.c_str());
 	}
 	else {
