@@ -157,6 +157,7 @@ int main(int argc, char** argv) {
 
 	iw_set_allow_opt(context, IW_OPT_PALETTE, 0);
 	iw_set_allow_opt(context, IW_OPT_STRIP_ALPHA, 0);
+	iw_set_allow_opt(context, IW_OPT_GRAYSCALE, 0);
 	int originalWidth = iw_get_value(context, IW_VAL_INPUT_WIDTH);
 	int originalHeight = iw_get_value(context, IW_VAL_INPUT_HEIGHT);
 	if (scale != 1) {
@@ -210,7 +211,7 @@ int main(int argc, char** argv) {
 	if (doprealpha && !dobackground) {
 		prealpha(context);
 	}
-
+	
 	if (format == "png") {
 		writeImage(context, to.c_str(), width, height, IW_FORMAT_PNG);
 	}
