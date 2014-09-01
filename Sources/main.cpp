@@ -179,6 +179,7 @@ int main(int argc, char** argv) {
 
 	if (pointSampling) {
 		iw_set_resize_alg(context, 0, IW_RESIZETYPE_NEAREST, 0, 0, 0);
+		iw_set_resize_alg(context, 1, IW_RESIZETYPE_NEAREST, 0, 0, 0);
 	}
 
 	if (format != "ico" && format != "icns") {
