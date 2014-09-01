@@ -1,4 +1,4 @@
-#include "Ball.h"
+#include "Icons.h"
 #include "ByteStream.h"
 #include "Image.h"
 #include <vector>
@@ -58,7 +58,7 @@ namespace {
 
 }
 		
-void scale(iw_context* context, int width, int height, Color color) {
+void scale(iw_context* context, int width, int height) {
 	/*Image* image;
 	
 	//Path customIcon = directory.resolve("icon.png");
@@ -73,14 +73,26 @@ void scale(iw_context* context, int width, int height, Color color) {
 	return scaledImage;*/
 
 	iw_set_output_profile(context, IW_PROFILE_TRANSPARENCY); // iw_get_profile_by_fmt(IW_FORMAT_PNG));
-	iw_set_output_depth(context, 32);
+	iw_set_output_depth(context, 8);
 	//figure_out_size_and_density(p, context);
 	iw_set_output_canvas_size(context, width, height);
-	iw_process_image(context);
-}
 
-void scale(iw_context* context, int width, int height) {
-	scale(context, width, height, transparent);
+	int originalWidth = iw_get_value(context, IW_VAL_INPUT_WIDTH);
+	int originalHeight = iw_get_value(context, IW_VAL_INPUT_HEIGHT);
+	if (width / height != originalWidth / originalHeight) {
+		double scale = 1;
+		if (originalWidth / originalHeight > width / height) {
+			scale = (double)width / (double)originalWidth;
+		}
+		else {
+			scale = (double)height / (double)originalHeight;
+		}
+		iw_set_value_dbl(context, IW_VAL_TRANSLATE_X, width / 2.0 - originalWidth * scale / 2.0);
+		iw_set_value_dbl(context, IW_VAL_TRANSLATE_Y, height / 2.0 - originalHeight * scale / 2.0);
+		iw_set_output_image_size(context, originalWidth * scale, originalHeight * scale);
+	}
+
+	iw_process_image(context);
 }
 
 void writeIcoHeader(ByteStream& stream) {
@@ -168,20 +180,20 @@ void windowsIcon(iw_context* context, const char* filename) {
 	writeIconDirEntry(stream, 48, 48, iconHeaderSize + iconDirEntrySize * 4 + getBMPSize(16, 16) + getBMPSize(32, 32));
 	writeIconDirEntry(stream, 256, 256, iconHeaderSize + iconDirEntrySize * 4 + getBMPSize(16, 16) + getBMPSize(32, 32) + getBMPSize(48, 48));
 
-	scale(context, 16, 16, transparent);
+	scale(context, 16, 16);
 	iw_image img;
 	iw_get_output_image(context, &img);
 	writeBMP(stream, &img);
 
-	scale(context, 32, 32, transparent);
+	scale(context, 32, 32);
 	iw_get_output_image(context, &img);
 	writeBMP(stream, &img);
 
-	scale(context, 48, 48, transparent);
+	scale(context, 48, 48);
 	iw_get_output_image(context, &img);
 	writeBMP(stream, &img);
 
-	scale(context, 256, 256, transparent);
+	scale(context, 256, 256);
 	iw_get_output_image(context, &img);
 	iw_iodescr writedescr;
 	memset(&writedescr, 0, sizeof(struct iw_iodescr));
@@ -217,19 +229,19 @@ void macIcon(iw_context* context, const char* filename) {
 			
 	stream.put('i'); stream.put('c'); stream.put('0'); stream.put('8');
 	stream.put('-'); stream.put('-'); stream.put('-'); stream.put('-');
-	scale(context, 256, 256, transparent);
+	scale(context, 256, 256);
 	iw_write_file_by_fmt(context, &writedescr, IW_FORMAT_PNG);
 	
 	int icon08size = static_cast<int>(stream.size() - 8);
 	stream.put('i'); stream.put('c'); stream.put('0'); stream.put('9');
 	stream.put('-'); stream.put('-'); stream.put('-'); stream.put('-');
-	scale(context, 512, 512, transparent);
+	scale(context, 512, 512);
 	iw_write_file_by_fmt(context, &writedescr, IW_FORMAT_PNG);
 	
 	int icon09size = static_cast<int>(stream.size() - icon08size - 8);
 	stream.put('i'); stream.put('c'); stream.put('1'); stream.put('0');
 	stream.put('-'); stream.put('-'); stream.put('-'); stream.put('-');
-	scale(context, 1024, 1024, transparent);
+	scale(context, 1024, 1024);
 	iw_write_file_by_fmt(context, &writedescr, IW_FORMAT_PNG);
 	
 	int icon10size = static_cast<int>(stream.size() - icon09size - icon08size - 8);
