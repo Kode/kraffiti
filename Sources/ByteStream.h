@@ -20,8 +20,8 @@ namespace kake {
 		}
 
 		void write(std::vector<byte> bytes) {
-			for (byte b : bytes) {
-				this->bytes.push_back(b);
+			for (size_t i = 0; i < bytes.size(); ++i) {
+				this->bytes.push_back(bytes[i]);
 				++index;
 			}
 		}
@@ -38,7 +38,7 @@ namespace kake {
 		void seek(int to) {
 			index = to;
 		}
-	
+
 		int index;
 		std::vector<byte> bytes;
 	};
