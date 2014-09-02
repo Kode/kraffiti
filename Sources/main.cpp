@@ -145,7 +145,7 @@ int main(int argc, char** argv) {
 		}
 	}
 
-	iw_context* context = iw_create_context(nullptr);
+	iw_context* context = iw_create_context(NULL);
 
 	iw_iodescr readdescr;
 	memset(&readdescr, 0, sizeof(struct iw_iodescr));
