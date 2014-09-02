@@ -1,6 +1,8 @@
 #include "Icons.h"
 #include "ByteStream.h"
 #include "Image.h"
+#include <stdio.h>
+#include <string.h>
 #include <vector>
 
 using namespace kake;
@@ -9,11 +11,11 @@ namespace {
 	const int iconHeaderSize = 6;
 	const int iconDirEntrySize = 16;
 	const int bmpHeaderSize = 40;
-	
+
 	int convertByteArrayToInt(std::vector<byte> buffer) {
 		if (buffer.size() != 4) throw new std::exception;
 
-		int 
+		int
 		value  = (0xFF & buffer[0]) << 24;
 		value |= (0xFF & buffer[1]) << 16;
 		value |= (0xFF & buffer[2]) << 8;
@@ -33,11 +35,11 @@ namespace {
 
 		return buffer;
 	}
-	
+
 	std::vector<byte> convertIntToByteArrayLE(unsigned val) {
 		std::vector<byte> buffer;
 		buffer.resize(4);
-		
+
 		buffer[3] = (byte) (val >> 24);
 		buffer[2] = (byte) (val >> 16);
 		buffer[1] = (byte) (val >> 8);
@@ -45,7 +47,7 @@ namespace {
 
 		return buffer;
 	}
-	
+
 	std::vector<byte> convertShortToByteArrayLE(unsigned short val) {
 		std::vector<byte> buffer;
 		buffer.resize(2);
@@ -57,10 +59,10 @@ namespace {
 	}
 
 }
-		
+
 void scale(iw_context* context, int width, int height) {
 	/*Image* image;
-	
+
 	//Path customIcon = directory.resolve("icon.png");
 	//if (Files::exists(customIcon)) {
 	//	image = new Image(customIcon);
@@ -129,7 +131,7 @@ void writeBMPHeader(ByteStream& stream, int width, int height) {
 	stream.write(convertIntToByteArrayLE(0)); //the number of colors in the color palette, or 0 to default to 2n.
 	stream.write(convertIntToByteArrayLE(0)); //the number of important colors used, or 0 when every color is important; generally ignored.
 }
-	
+
 void writeBMP(ByteStream& stream, iw_image* image) {
 	writeBMPHeader(stream, image->width, image->height);
 	for (int y = image->height - 1; y >= 0; --y) {
@@ -138,9 +140,9 @@ void writeBMP(ByteStream& stream, iw_image* image) {
 			//stream.put(image->g(x, y));
 			//stream.put(image->r(x, y));
 			//stream.put(image->a(x, y));
-			
+
 			//stream.write(convertIntToByteArrayLE(image->argb(x, y)));
-			
+
 			stream.put(image->pixels[y * image->bpr + x * 4 + 2]);
 			stream.put(image->pixels[y * image->bpr + x * 4 + 1]);
 			stream.put(image->pixels[y * image->bpr + x * 4 + 0]);
@@ -169,7 +171,7 @@ int stream_writefn(struct iw_context *ctx, struct iw_iodescr *iodescr, const voi
 	}
 	return 1;
 }
-	
+
 void windowsIcon(iw_context* context, const char* filename) {
 	//16x16
 	//32x32
@@ -205,10 +207,10 @@ void windowsIcon(iw_context* context, const char* filename) {
 	writedescr.seek_fn = stream_seekfn;
 	writedescr.fp = &stream;
 	iw_write_file_by_fmt(context, &writedescr, IW_FORMAT_PNG);
-			
+
 	std::vector<byte> pngSize = convertIntToByteArrayLE(static_cast<int>(stream.size()) - (iconHeaderSize + iconDirEntrySize * 4 + getBMPSize(16, 16) + getBMPSize(32, 32) + getBMPSize(48, 48)));
 	for (int i = 0; i < 4; ++i) stream.set(i + iconHeaderSize + iconDirEntrySize * 3 + 8, pngSize[i]);
-	
+
 	stream.save(filename);
 }
 
@@ -219,7 +221,7 @@ void macIcon(iw_context* context, const char* filename) {
 	//256x256
 	//512x512
 	//1024x1024
-	
+
 	ByteStream stream;
 
 	iw_iodescr writedescr;
@@ -230,37 +232,37 @@ void macIcon(iw_context* context, const char* filename) {
 
 	stream.put('i'); stream.put('c'); stream.put('n'); stream.put('s');
 	stream.put('-'); stream.put('-'); stream.put('-'); stream.put('-');
-			
+
 	stream.put('i'); stream.put('c'); stream.put('0'); stream.put('8');
 	stream.put('-'); stream.put('-'); stream.put('-'); stream.put('-');
 	scale(context, 256, 256);
 	iw_write_file_by_fmt(context, &writedescr, IW_FORMAT_PNG);
-	
+
 	int icon08size = static_cast<int>(stream.size() - 8);
 	stream.put('i'); stream.put('c'); stream.put('0'); stream.put('9');
 	stream.put('-'); stream.put('-'); stream.put('-'); stream.put('-');
 	scale(context, 512, 512);
 	iw_write_file_by_fmt(context, &writedescr, IW_FORMAT_PNG);
-	
+
 	int icon09size = static_cast<int>(stream.size() - icon08size - 8);
 	stream.put('i'); stream.put('c'); stream.put('1'); stream.put('0');
 	stream.put('-'); stream.put('-'); stream.put('-'); stream.put('-');
 	scale(context, 1024, 1024);
 	iw_write_file_by_fmt(context, &writedescr, IW_FORMAT_PNG);
-	
+
 	int icon10size = static_cast<int>(stream.size() - icon09size - icon08size - 8);
-	
+
 	std::vector<byte> size = convertIntToByteArray(static_cast<int>(stream.size()));
 	for (int i = 0; i < 4; ++i) stream.set( 4 + i, size[i]);
-	
+
 	size = convertIntToByteArray(icon08size);
 	for (int i = 0; i < 4; ++i) stream.set(12 + i, size[i]);
-	
+
 	size = convertIntToByteArray(icon09size);
 	for (int i = 0; i < 4; ++i) stream.set(icon08size + 8 + 4 + i, size[i]);
-	
+
 	size = convertIntToByteArray(icon10size);
 	for (int i = 0; i < 4; ++i) stream.set(icon08size + icon09size + 8 + 4 + i, size[i]);
-	
+
 	stream.save(filename);
 }

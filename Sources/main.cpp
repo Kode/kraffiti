@@ -3,6 +3,7 @@
 #include <imagew.h>
 #include <memory.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string>
 
 namespace {
@@ -42,7 +43,7 @@ namespace {
 		*pbytesread = fread(buf, 1, nbytes, (FILE*)iodescr->fp);
 		return 1;
 	}
-	
+
 	int my_getfilesizefn(struct iw_context *ctx, struct iw_iodescr *iodescr, iw_int64 *pfilesize) {
 		int ret;
 		long lret;
@@ -205,7 +206,7 @@ int main(int argc, char** argv) {
 		}
 		iw_process_image(context);
 	}
-	
+
 	if (dotransparency) {
 		transparent(context, transparentColor);
 	}
@@ -213,7 +214,7 @@ int main(int argc, char** argv) {
 	if (doprealpha && !dobackground) {
 		prealpha(context);
 	}
-	
+
 	if (format == "png") {
 		writeImage(context, to.c_str(), width, height, IW_FORMAT_PNG);
 	}
