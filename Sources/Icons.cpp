@@ -5,8 +5,6 @@
 #include <string.h>
 #include <vector>
 
-using namespace kake;
-
 namespace {
 	const int iconHeaderSize = 6;
 	const int iconDirEntrySize = 16;

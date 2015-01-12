@@ -13,6 +13,7 @@ project.addDefine("PNG_NO_CONFIG_H");
 project.addFile('Sources/**');
 project.addFile('imageworsener/src/*.h');
 project.addFile('imageworsener/src/*.c');
+project.addFile('Libraries/PVRTexTool/Include/**');
 project.addExclude('imageworsener/src/imagew-cmd.c');
 
 project.addFile("zlib/*.h");
@@ -47,6 +48,12 @@ project.addIncludeDir("zlib");
 project.addIncludeDir("libpng");
 project.addIncludeDir("libjpeg");
 project.addIncludeDir("imageworsener/src");
+project.addIncludeDir('Libraries/PVRTexTool/Include');
+
+if (platform === Platform.Windows) {
+	project.addLibFor('Win32', 'Libraries/PVRTexTool/Windows_x86_32/Static/PVRTexLib');
+	project.addLibFor('x64', 'Libraries/PVRTexTool/Windows_x86_64/Static/PVRTexLib');
+}
 
 solution.addProject(project);
 

@@ -1,4 +1,5 @@
 #include "Icons.h"
+#include "pvrtc.h"
 #include "Preprocessor.h"
 #include <imagew.h>
 #include <memory.h>
@@ -183,7 +184,7 @@ int main(int argc, char** argv) {
 		iw_set_resize_alg(context, 1, IW_RESIZETYPE_NEAREST, 0, 0, 0);
 	}
 
-	if (format != "ico" && format != "icns") {
+	if (format == "png") {
 		iw_set_output_profile(context, iw_get_profile_by_fmt(IW_FORMAT_PNG) & ~IW_PROFILE_16BPS);
 		iw_set_output_depth(context, 8);
 		//figure_out_size_and_density(p, context);
@@ -223,6 +224,9 @@ int main(int argc, char** argv) {
 	}
 	else if (format == "icns") {
 		macIcon(context, to.c_str());
+	}
+	else if (format == "pvrtc") {
+		pvrtc(context, to.c_str());
 	}
 	else {
 		// Unknown format
