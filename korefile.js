@@ -54,6 +54,9 @@ if (platform === Platform.Windows) {
 	project.addLibFor('Win32', 'Libraries/PVRTexTool/Windows_x86_32/Static/PVRTexLib');
 	project.addLibFor('x64', 'Libraries/PVRTexTool/Windows_x86_64/Static/PVRTexLib');
 }
+else if (platform == Platform.OSX) {
+	project.addLibFor('Libraries/PVRTexTool/OSX_x86/Static/PVRTexLib');
+}
 
 solution.addProject(project);
 
