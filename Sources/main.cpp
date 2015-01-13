@@ -184,7 +184,7 @@ int main(int argc, char** argv) {
 		iw_set_resize_alg(context, 1, IW_RESIZETYPE_NEAREST, 0, 0, 0);
 	}
 
-	if (format == "png") {
+	if (format == "png" || format == "pvrtc") {
 		iw_set_output_profile(context, iw_get_profile_by_fmt(IW_FORMAT_PNG) & ~IW_PROFILE_16BPS);
 		iw_set_output_depth(context, 8);
 		//figure_out_size_and_density(p, context);
