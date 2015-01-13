@@ -56,9 +56,9 @@ namespace {
 }
 
 void pvrtc(iw_context* context, const char* filename) {
-	int w = iw_get_value(context, IW_VAL_INPUT_WIDTH);
-	int h = iw_get_value(context, IW_VAL_INPUT_HEIGHT);
-	scale(context, imax(w, h), imax(w, h));
+	//int w = iw_get_value(context, IW_VAL_INPUT_WIDTH);
+	//int h = iw_get_value(context, IW_VAL_INPUT_HEIGHT);
+	//scale(context, imax(w, h), imax(w, h));
 	iw_image img;
 	iw_get_output_image(context, &img);
 	writePVRTC(&img, filename);
