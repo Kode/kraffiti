@@ -54,9 +54,14 @@ namespace {
 			if (pow(power) >= i) return pow(power);
 	}
 
+	int imax(int a, int b) {
+		return a > b ? a : b;
+	}
+
 	void writePVRTC(iw_image* image, const char* filename) {
 		int w = getPower2(image->width);
 		int h = getPower2(image->height);
+		w = h = imax(w, h);
 		unsigned char* pixels = new unsigned char[w * h * 4];
 		for (int y = 0; y < h; ++y) for (int x = 0; x < w; ++x) {
 			pixels[y * w * 4 + x * 4 + 0] = 0;
@@ -94,10 +99,6 @@ namespace {
 		
 		texture.saveFile(filename);
 		delete[] pixels;
-	}
-
-	int imax(int a, int b) {
-		return a > b ? a : b;
 	}
 }
 
