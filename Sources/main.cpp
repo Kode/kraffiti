@@ -78,6 +78,10 @@ bool startsWith(std::string a, std::string b) {
 	return a.substr(0, b.size()) == b;
 }
 
+bool endsWith(std::string a, std::string b) {
+	return a.substr(a.size() - b.size(), b.size()) == b;
+}
+
 void writeImage(iw_context* context, const char* filename, int width, int height, int fmt) {
 	iw_iodescr writedescr;
 	memset(&writedescr, 0, sizeof(struct iw_iodescr));
@@ -154,7 +158,7 @@ int main(int argc, char** argv) {
 	readdescr.read_fn = my_readfn;
 	readdescr.getfilesize_fn = my_getfilesizefn;
 	readdescr.fp = (void*)fopen(from.c_str(), "rb");
-	iw_read_file_by_fmt(context, &readdescr, IW_FORMAT_PNG);
+	iw_read_file_by_fmt(context, &readdescr, endsWith(from, ".png") ? IW_FORMAT_PNG : IW_FORMAT_JPEG);
 	fclose((FILE*)readdescr.fp);
 
 	iw_set_allow_opt(context, IW_OPT_PALETTE, 0);
@@ -184,7 +188,7 @@ int main(int argc, char** argv) {
 		iw_set_resize_alg(context, 1, IW_RESIZETYPE_NEAREST, 0, 0, 0);
 	}
 
-	if (format == "png" || format == "pvrtc") {
+	if (format == "png" || format == "pvrtc" || format == "jpg" || format == "jpeg") {
 		iw_set_output_profile(context, iw_get_profile_by_fmt(IW_FORMAT_PNG) & ~IW_PROFILE_16BPS);
 		iw_set_output_depth(context, 8);
 		//figure_out_size_and_density(p, context);
@@ -218,6 +222,9 @@ int main(int argc, char** argv) {
 
 	if (format == "png") {
 		writeImage(context, to.c_str(), width, height, IW_FORMAT_PNG);
+	}
+	else if (format == "jpg" || format == "jpeg") {
+		writeImage(context, to.c_str(), width, height, IW_FORMAT_JPEG);
 	}
 	else if (format == "ico") {
 		windowsIcon(context, to.c_str());
