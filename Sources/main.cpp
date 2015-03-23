@@ -189,7 +189,12 @@ int main(int argc, char** argv) {
 	}
 
 	if (format == "png" || format == "pvrtc" || format == "jpg" || format == "jpeg") {
-		iw_set_output_profile(context, iw_get_profile_by_fmt(IW_FORMAT_PNG) & ~IW_PROFILE_16BPS);
+		if (format == "jpg" || format == "jpeg") {
+			iw_set_output_profile(context, iw_get_profile_by_fmt(IW_FORMAT_JPEG) & ~IW_PROFILE_16BPS);
+		}
+		else {
+			iw_set_output_profile(context, iw_get_profile_by_fmt(IW_FORMAT_PNG) & ~IW_PROFILE_16BPS);
+		}
 		iw_set_output_depth(context, 8);
 		//figure_out_size_and_density(p, context);
 		iw_set_output_canvas_size(context, width, height);
