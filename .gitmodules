@@ -2,3 +2,7 @@
 	path = imageworsener
 	url = ../imageworsener
 	branch = master
+[submodule "Libraries/astc-encoder"]
+	path = Libraries/astc-encoder
+	url = https://github.com/ARM-software/astc-encoder.git
+	branch = master
