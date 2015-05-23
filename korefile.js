@@ -47,7 +47,6 @@ project.addFile('Libraries/astc-encoder/Source/**');
 project.addExclude('Libraries/astc-encoder/Source/exr_to_htga.cpp');
 project.addExclude('Libraries/astc-encoder/Source/imgdiff.cpp');
 project.addExclude('Libraries/astc-encoder/Source/astc_averages_and_directions_eigenvectors.cpp');
-project.addExclude('Libraries/astc-encoder/Source/stb_image.cpp');
 if (platform === Platform.Windows) {
 	project.addIncludeDir('Libraries/astc-encoder/Source/win32-2010/astcenc');
 }

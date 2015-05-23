@@ -1,4 +1,5 @@
 #include "Icons.h"
+#include "astc.h"
 #include "pvrtc.h"
 #include "Preprocessor.h"
 #include <imagew.h>
@@ -236,6 +237,9 @@ int main(int argc, char** argv) {
 	}
 	else if (format == "icns") {
 		macIcon(context, to.c_str());
+	}
+	else if (format == "astc") {
+		astc(context, to.c_str());
 	}
 	else if (format == "pvrtc") {
 		pvrtc(context, to.c_str());
