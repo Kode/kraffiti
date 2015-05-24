@@ -189,7 +189,7 @@ int main(int argc, char** argv) {
 		iw_set_resize_alg(context, 1, IW_RESIZETYPE_NEAREST, 0, 0, 0);
 	}
 
-	if (format == "png" || format == "pvrtc" || format == "jpg" || format == "jpeg") {
+	if (format == "png" || format == "pvrtc" || format == "astc" || format == "jpg" || format == "jpeg") {
 		if (format == "jpg" || format == "jpeg") {
 			iw_set_output_profile(context, iw_get_profile_by_fmt(IW_FORMAT_JPEG) & ~IW_PROFILE_16BPS);
 		}

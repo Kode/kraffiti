@@ -9,6 +9,7 @@ void store_astc_file(const astc_codec_image * input_image,
 	const char *filename, int xdim, int ydim, int zdim, const error_weighting_params * ewp, astc_decode_mode decode_mode, swizzlepattern swz_encode, int threadcount);
 void find_closest_blockdim_2d(float target_bitrate, int *x, int *y, int consider_illegal);
 void find_closest_blockdim_3d(float target_bitrate, int *x, int *y, int *z, int consider_illegal);
+unsigned get_number_of_cpus(void);
 
 namespace {
 	void writeASTC(iw_image* image, const char* filename) {
@@ -190,11 +191,45 @@ namespace {
 		silentmode = 1;
 
 		// Alpha
-		//ewp.enable_rgb_scale_with_alpha = 1;
-		//ewp.alpha_radius = 1;
+		ewp.enable_rgb_scale_with_alpha = 1;
+		ewp.alpha_radius = 1;
+
+		// Thorough
+		plimit_autoset = 100;
+		oplimit_autoset = 2.5f;
+		mincorrel_autoset = 0.95f;
+		dblimit_autoset_2d = MAX(105 - 35 * log10_texels_2d, 77 - 19 * log10_texels_2d);
+		dblimit_autoset_3d = MAX(105 - 35 * log10_texels_3d, 77 - 19 * log10_texels_3d);
+		bmc_autoset = 95;
+		maxiters_autoset = 4;
+
+		switch (ydim_2d)
+		{
+		case 4:
+			pcdiv = 12;
+			break;
+		case 5:
+			pcdiv = 7;
+			break;
+		case 6:
+			pcdiv = 7;
+			break;
+		case 8:
+			pcdiv = 5;
+			break;
+		case 10:
+			pcdiv = 4;
+			break;
+		case 12:
+			pcdiv = 3;
+			break;
+		default:
+			pcdiv = 3;
+			break;
+		};
 		
 		// Exhaustive
-		plimit_autoset = PARTITION_COUNT;
+		/*plimit_autoset = PARTITION_COUNT;
 		oplimit_autoset = 1000.0f;
 		mincorrel_autoset = 0.99f;
 		dblimit_autoset_2d = 999.0f;
@@ -226,7 +261,7 @@ namespace {
 		default:
 			pcdiv = 1;
 			break;
-		}
+		}*/
 		
 		// SRGB
 		//perform_srgb_transform = 1;
@@ -282,7 +317,7 @@ namespace {
 
 			if (thread_count < 1)
 			{
-				thread_count = 1; // get_number_of_cpus();
+				thread_count = get_number_of_cpus();
 				thread_count_autodetected = 1;
 			}
 
@@ -315,9 +350,6 @@ namespace {
 		int zdim = -1;
 
 		// Temporary image array (for merging multiple 2D images into one 3D image).
-		int *load_results = NULL;
-		astc_codec_image **input_images = NULL;
-
 		int load_result = 0;
 		astc_codec_image *input_image = NULL;
 		astc_codec_image *output_image = NULL;
@@ -328,75 +360,17 @@ namespace {
 		// load image
 		if (opmode == 0 || opmode == 2 || opmode == 3)
 		{
-			// Allocate arrays for image data and load results.
-			load_results = new int[array_size];
-			input_images = new astc_codec_image *[array_size];
-
-			// Iterate over all input images.
-			/*for (int image_index = 0; image_index < array_size; image_index++)
-			{
-				// 2D input data.
-				if (array_size == 1)
-				{
-					input_images[image_index] = astc_codec_load_image(input_filename, padding, &load_results[image_index]);
-				}
-
-				// 3D input data - multiple 2D images.
-				else
-				{
-					char new_input_filename[256];
-
-					// Check for extension: <name>.<extension>
-					if (NULL == strrchr(input_filename, '.'))
-					{
-						printf("Unable to determine file type from extension: %s\n", input_filename);
-						exit(1);
-					}
-
-					// Construct new file name and load: <name>_N.<extension>
-					strcpy(new_input_filename, input_filename);
-					sprintf(strrchr(new_input_filename, '.'), "_%d%s", image_index, strrchr(input_filename, '.'));
-					input_images[image_index] = astc_codec_load_image(new_input_filename, padding, &load_results[image_index]);
-
-					// Check image is not 3D.
-					if (input_images[image_index]->zsize != 1)
-					{
-						printf("3D source images not supported with -array option: %s\n", new_input_filename);
-						exit(1);
-					}
-
-					// BCJ(DEBUG)
-					// printf("\n\n Image %d \n", image_index);
-					// dump_image( input_images[image_index] );
-					// printf("\n\n");
-				}
-
-				// Check load result.
-				if (load_results[image_index] < 0)
-				{
-					printf("Failed to load image %s\n", input_filename);
-					exit(1);
-				}
-
-				// Check format matches other slices.
-				if (load_results[image_index] != load_results[0])
-				{
-					printf("Mismatching image format - image 0 and %d are a different format\n", image_index);
-					exit(1);
+			// Assign input image.
+			input_image = allocate_image(bitness, image->width, image->height, 1, padding);
+			for (int y = 0; y < image->height; ++y) {
+				for (int x = 0; x < image->width; ++x) {
+					input_image->imagedata8[0][y][4 * x + 0] = image->pixels[y * image->width * 4 + x * 4 + 0];
+					input_image->imagedata8[0][y][4 * x + 1] = image->pixels[y * image->width * 4 + x * 4 + 1];
+					input_image->imagedata8[0][y][4 * x + 2] = image->pixels[y * image->width * 4 + x * 4 + 2];
+					input_image->imagedata8[0][y][4 * x + 3] = image->pixels[y * image->width * 4 + x * 4 + 3];
 				}
 			}
 
-			load_result = load_results[0];*/
-
-			// Assign input image.
-			//input_image = input_images[0];
-			input_image->padding = padding;
-			input_image->imagedata8 = (uint8_t***)image->pixels;
-			input_image->imagedata16 = NULL;
-			input_image->xsize = image->width;
-			input_image->ysize = image->height;
-			input_image->zsize = 1;
-			
 			input_components = load_result & 7;
 			input_image_is_hdr = (load_result & 0x80) ? 1 : 0;
 
