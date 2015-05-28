@@ -73,6 +73,17 @@ namespace {
 		fwrite(buf, 1, nbytes, (FILE*)iodescr->fp);
 		return 1;
 	}
+
+	int pow(int pow) {
+		int ret = 1;
+		for (int i = 0; i < pow; ++i) ret *= 2;
+		return ret;
+	}
+
+	int getPower2(int i) {
+		for (int power = 0;; ++power)
+			if (pow(power) >= i) return pow(power);
+	}
 }
 
 bool startsWith(std::string a, std::string b) {
@@ -103,6 +114,7 @@ int main(int argc, char** argv) {
 	bool dotransparency = false;
 	bool donothing = false;
 	bool keepaspect = false;
+	bool topowerofto = false;
 	unsigned backgroundColor = 0;
 	unsigned transparentColor = 0;
 	int width = -1;
@@ -147,6 +159,9 @@ int main(int argc, char** argv) {
 		}
 		else if (arg == "keepaspect") {
 			keepaspect = true;
+		}
+		else if (arg == "poweroftwo") {
+			topowerofto = true;
 		}
 		else if (arg == "donothing") {
 			donothing = true;
@@ -208,7 +223,15 @@ int main(int argc, char** argv) {
 		}
 		iw_set_output_depth(context, 8);
 		//figure_out_size_and_density(p, context);
-		iw_set_output_canvas_size(context, width, height);
+		
+		if (topowerofto) {
+			iw_set_output_canvas_size(context, getPower2(width), getPower2(height));
+			iw_set_output_image_size(context, width, height);
+		}
+		else {
+			iw_set_output_canvas_size(context, width, height);
+		}
+
 		double w = width;
 		double h = height;
 		double ow = originalWidth;
