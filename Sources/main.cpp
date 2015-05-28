@@ -101,6 +101,7 @@ int main(int argc, char** argv) {
 	bool doprealpha = false;
 	bool dobackground = false;
 	bool dotransparency = false;
+	bool donothing = false;
 	bool keepaspect = false;
 	unsigned backgroundColor = 0;
 	unsigned transparentColor = 0;
@@ -147,6 +148,9 @@ int main(int argc, char** argv) {
 		else if (arg == "keepaspect") {
 			keepaspect = true;
 		}
+		else if (arg == "donothing") {
+			donothing = true;
+		}
 		else {
 			// Unknown parameter
 		}
@@ -174,6 +178,12 @@ int main(int argc, char** argv) {
 	}
 	if (width < 0) width = originalWidth;
 	if (height < 0) height = originalHeight;
+
+	printf("#%ix%i", width, height);
+
+	if (donothing) {
+		return 0;
+	}
 
 	if (dobackground) {
 		iw_color background;
