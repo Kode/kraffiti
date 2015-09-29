@@ -1,5 +1,7 @@
-var solution = new Solution("kraffiti");
-var project = new Project("kraffiti");
+const solution = new Solution("kraffiti");
+const project = new Project("kraffiti");
+
+const pvrtc = true;
 
 solution.setCmd();
 
@@ -53,14 +55,17 @@ project.addIncludeDir("Sources");
 project.addIncludeDir("zlib");
 project.addIncludeDir("libpng");
 project.addIncludeDir("libjpeg");
-project.addIncludeDir('Libraries/PVRTexTool/Include');
 
-if (platform === Platform.Windows) {
-	project.addLibFor('Win32', 'Libraries/PVRTexTool/Windows_x86_32/Static/PVRTexLib');
-	project.addLibFor('x64', 'Libraries/PVRTexTool/Windows_x86_64/Static/PVRTexLib');
-}
-else if (platform == Platform.OSX) {
-	project.addLibFor('Libraries/PVRTexTool/OSX_x86/Static/PVRTexLib');
+if (pvrtc) {
+	project.addDefine('LIB_PVRTC');
+	project.addIncludeDir('Libraries/PVRTexTool/Include');
+	if (platform === Platform.Windows) {
+		project.addLibFor('Win32', 'Libraries/PVRTexTool/Windows_x86_32/Static/PVRTexLib');
+		project.addLibFor('x64', 'Libraries/PVRTexTool/Windows_x86_64/Static/PVRTexLib');
+	}
+	else if (platform === Platform.OSX) {
+		project.addLibFor('Libraries/PVRTexTool/OSX_x86/Static/PVRTexLib');
+	}
 }
 
 solution.addProject(project);

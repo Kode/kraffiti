@@ -1,4 +1,7 @@
 #include "pvrtc.h"
+
+#ifdef LIB_PVRTC
+
 #include <PVRTextureUtilities.h>
 
 namespace {
@@ -64,3 +67,11 @@ namespace {
 void pvrtc(Image image, const char* filename) {
 	writePVRTC(image, filename);
 }
+
+#else
+
+void pvrtc(Image image, const char* filename) {
+	
+}
+
+#endif

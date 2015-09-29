@@ -123,12 +123,13 @@ void writeJPEG(Image image, const char* filename) {
 }
 
 Image readPNG(const char* filename) {
-	png_image image = { 0 };
+	png_image image;
+	memset(&image, 0, sizeof(image));
 	image.version = PNG_IMAGE_VERSION;
 
 	if (png_image_begin_read_from_file(&image, filename)) {
 		image.format = PNG_FORMAT_RGBA;
-		png_bytep buffer = (png_bytep)malloc(PNG_IMAGE_SIZE(image));
+		png_bytep buffer = (png_bytep)malloc(PNG_IMAGE_SIZE(image) * 10);
 		if (buffer != NULL && png_image_finish_read(&image, NULL, buffer, 0, NULL)) {
 			return Image(buffer, image.width, image.height);
 		}
@@ -138,7 +139,8 @@ Image readPNG(const char* filename) {
 }
 
 void writePNG(Image image, const char* filename) {
-	png_image img = { 0 };
+	png_image img;
+	memset(&img, 0, sizeof(image));
 	img.version = PNG_IMAGE_VERSION;
 	img.opaque = NULL;
 	img.width = image.width;
@@ -146,7 +148,7 @@ void writePNG(Image image, const char* filename) {
 	img.format = PNG_FORMAT_RGBA;
 	img.flags = 0;
 
-	if (!png_image_write_to_file(&img, filename, 1, image.pixels, 0, NULL)) {
+	if (!png_image_write_to_file(&img, filename, 0, image.pixels, 0, NULL)) {
 		// error
 	}
 }
