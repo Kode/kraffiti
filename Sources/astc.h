@@ -1,3 +1,5 @@
 #pragma once
 
-//void astc(iw_context* context, const char* filename);
+#include "Image.h"
+
+void astc(Image image, const char* filename);

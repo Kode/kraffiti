@@ -1,5 +1,7 @@
 #include "astc.h"
-/*
+
+#ifdef LIB_ASTC
+
 #include "../Libraries/astc-encoder/Source/astc_codec_internals.h"
 #include <math.h>
 #include <stdio.h>
@@ -13,7 +15,7 @@ void find_closest_blockdim_3d(float target_bitrate, int *x, int *y, int *z, int 
 unsigned get_number_of_cpus(void);
 
 namespace {
-	void writeASTC(iw_image* image, const char* filename) {
+	void writeASTC(Image image, const char* filename) {
 		//int i;
 
 		prepare_angular_tables();
@@ -112,21 +114,16 @@ namespace {
 		// parse the commandline's encoding options.
 		int argidx;
 		const char* argv_encoding = "2.0";
-		if (opmode == 0 || opmode == 2)
-		{
-			if (strchr(argv_encoding, '.') != NULL)
-			{
+		if (opmode == 0 || opmode == 2) {
+			if (strchr(argv_encoding, '.') != NULL) {
 				target_bitrate = static_cast < float >(atof(argv_encoding));
 				target_bitrate_set = 1;
 				find_closest_blockdim_2d(target_bitrate, &xdim_2d, &ydim_2d, DEBUG_ALLOW_ILLEGAL_BLOCK_SIZES);
 				find_closest_blockdim_3d(target_bitrate, &xdim_3d, &ydim_3d, &zdim_3d, DEBUG_ALLOW_ILLEGAL_BLOCK_SIZES);
 			}
-
-			else
-			{
+			else {
 				int dimensions = sscanf(argv_encoding, "%dx%dx%d", &xdim_3d, &ydim_3d, &zdim_3d);
-				switch (dimensions)
-				{
+				switch (dimensions) {
 				case 0:
 				case 1:
 					// failed to parse the blocksize argument at all.
@@ -158,16 +155,14 @@ namespace {
 				default:
 				{
 					// Check 3D constraints
-					if (xdim_3d < 3 || xdim_3d > 6 || ydim_3d < 3 || ydim_3d > 6 || zdim_3d < 3 || zdim_3d > 6)
-					{
+					if (xdim_3d < 3 || xdim_3d > 6 || ydim_3d < 3 || ydim_3d > 6 || zdim_3d < 3 || zdim_3d > 6) {
 						printf("Block dimensions %d x %d x %d unsupported\n", xdim_3d, ydim_3d, zdim_3d);
 						exit(1);
 					}
 
 					int is_legal_3d = ((xdim_3d == ydim_3d) && (ydim_3d == zdim_3d)) || ((xdim_3d == ydim_3d + 1) && (ydim_3d == zdim_3d)) || ((xdim_3d == ydim_3d) && (ydim_3d == zdim_3d + 1));
 
-					if (!DEBUG_ALLOW_ILLEGAL_BLOCK_SIZES && !is_legal_3d)
-					{
+					if (!DEBUG_ALLOW_ILLEGAL_BLOCK_SIZES && !is_legal_3d) {
 						printf("Block dimensions %d x %d x %d disallowed\n", xdim_3d, ydim_3d, zdim_3d);
 						exit(1);
 					}
@@ -183,8 +178,7 @@ namespace {
 			log10_texels_3d = log((float)(xdim_3d * ydim_3d * zdim_3d)) / log(10.0f);
 			argidx = 5;
 		}
-		else
-		{
+		else {
 			// for decode and comparison, block size is not needed.
 			argidx = 4;
 		}
@@ -204,8 +198,7 @@ namespace {
 		bmc_autoset = 95;
 		maxiters_autoset = 4;
 
-		switch (ydim_2d)
-		{
+		switch (ydim_2d) {
 		case 4:
 			pcdiv = 12;
 			break;
@@ -272,8 +265,7 @@ namespace {
 		float texel_avg_error_limit_2d = 0.0f;
 		float texel_avg_error_limit_3d = 0.0f;
 
-		if (opmode == 0 || opmode == 2)
-		{
+		if (opmode == 0 || opmode == 2) {
 			// if encode, process the parsed commandline values
 
 			//progress_counter_divider = pcdiv;
@@ -289,13 +281,11 @@ namespace {
 
 			ewp.block_mode_cutoff = (bmc_set_by_user ? bmc_user_specified : bmc_autoset) / 100.0f;
 
-			if (rgb_force_use_of_hdr == 0)
-			{
+			if (rgb_force_use_of_hdr == 0) {
 				texel_avg_error_limit_2d = pow(0.1f, dblimit_2d * 0.1f) * 65535.0f * 65535.0f;
 				texel_avg_error_limit_3d = pow(0.1f, dblimit_3d * 0.1f) * 65535.0f * 65535.0f;
 			}
-			else
-			{
+			else {
 				texel_avg_error_limit_2d = 0.0f;
 				texel_avg_error_limit_3d = 0.0f;
 			}
@@ -309,15 +299,12 @@ namespace {
 			ewp.partition_search_limit = partitions_to_test;
 
 			// if diagnostics are run, force the thread count to 1.
-			if (
-				print_tile_errors > 0 || print_statistics > 0)
-			{
+			if (print_tile_errors > 0 || print_statistics > 0) {
 				thread_count = 1;
 				thread_count_autodetected = 0;
 			}
 
-			if (thread_count < 1)
-			{
+			if (thread_count < 1) {
 				thread_count = get_number_of_cpus();
 				thread_count_autodetected = 1;
 			}
@@ -341,8 +328,7 @@ namespace {
 		// if enforced by the output format, follow the output format's result
 		// else use decode_mode to pick bitness.
 		int bitness = get_output_filename_enforced_bitness(output_filename);
-		if (bitness == -1)
-		{
+		if (bitness == -1) {
 			bitness = (decode_mode == DECODE_HDR) ? 16 : 8;
 		}
 
@@ -359,31 +345,28 @@ namespace {
 		int input_image_is_hdr = 0;
 
 		// load image
-		if (opmode == 0 || opmode == 2 || opmode == 3)
-		{
+		if (opmode == 0 || opmode == 2 || opmode == 3) {
 			// Assign input image.
-			input_image = allocate_image(bitness, image->width, image->height, 1, padding);
-			for (int y = 0; y < image->height; ++y) {
-				for (int x = 0; x < image->width; ++x) {
-					input_image->imagedata8[0][y][4 * x + 0] = image->pixels[y * image->width * 4 + x * 4 + 0];
-					input_image->imagedata8[0][y][4 * x + 1] = image->pixels[y * image->width * 4 + x * 4 + 1];
-					input_image->imagedata8[0][y][4 * x + 2] = image->pixels[y * image->width * 4 + x * 4 + 2];
-					input_image->imagedata8[0][y][4 * x + 3] = image->pixels[y * image->width * 4 + x * 4 + 3];
+			input_image = allocate_image(bitness, image.width, image.height, 1, padding);
+			for (int y = 0; y < image.height; ++y) {
+				for (int x = 0; x < image.width; ++x) {
+					input_image->imagedata8[0][y][4 * x + 0] = image.pixels[y * image.stride + x * 4 + 0];
+					input_image->imagedata8[0][y][4 * x + 1] = image.pixels[y * image.stride + x * 4 + 1];
+					input_image->imagedata8[0][y][4 * x + 2] = image.pixels[y * image.stride + x * 4 + 2];
+					input_image->imagedata8[0][y][4 * x + 3] = image.pixels[y * image.stride + x * 4 + 3];
 				}
 			}
 
 			input_components = load_result & 7;
 			input_image_is_hdr = (load_result & 0x80) ? 1 : 0;
 
-			if (input_image->zsize > 1)
-			{
+			if (input_image->zsize > 1) {
 				xdim = xdim_3d;
 				ydim = ydim_3d;
 				zdim = zdim_3d;
 				ewp.texel_avg_error_limit = texel_avg_error_limit_3d;
 			}
-			else
-			{
+			else {
 				xdim = xdim_2d;
 				ydim = ydim_2d;
 				zdim = 1;
@@ -391,25 +374,25 @@ namespace {
 			}
 			expand_block_artifact_suppression(xdim, ydim, zdim, &ewp);
 
-			if (padding > 0 || ewp.rgb_mean_weight != 0.0f || ewp.rgb_stdev_weight != 0.0f || ewp.alpha_mean_weight != 0.0f || ewp.alpha_stdev_weight != 0.0f)
-			{
+			if (padding > 0 || ewp.rgb_mean_weight != 0.0f || ewp.rgb_stdev_weight != 0.0f || ewp.alpha_mean_weight != 0.0f || ewp.alpha_stdev_weight != 0.0f) {
 				compute_averages_and_variances(input_image, ewp.rgb_power, ewp.alpha_power, ewp.mean_stdev_radius, ewp.alpha_radius, swz_encode);
 			}
 		}
 
-		if (opmode == 0)
-		{
+		if (opmode == 0) {
 			store_astc_file(input_image, output_filename, xdim, ydim, zdim, &ewp, decode_mode, swz_encode, thread_count);
 		}
 	}
 }
 
-void astc(iw_context* context, const char* filename) {
-	//int w = iw_get_value(context, IW_VAL_INPUT_WIDTH);
-	//int h = iw_get_value(context, IW_VAL_INPUT_HEIGHT);
-	//scale(context, getPower2(w), getPower2(h));
-	iw_image img;
-	iw_get_output_image(context, &img);
-	writeASTC(&img, filename);
+void astc(Image image, const char* filename) {
+	writeASTC(image, filename);
 }
-*/
+
+#else
+
+void astc(Image image, const char* filename) {
+
+}
+
+#endif

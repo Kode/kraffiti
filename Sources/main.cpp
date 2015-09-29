@@ -291,8 +291,7 @@ int main(int argc, char** argv) {
 		macIcon(image, to.c_str());
 	}
 	else if (format == "astc") {
-		//astc(context, to.c_str());
-		// TODO
+		astc(image, to.c_str());
 	}
 	else if (format == "pvrtc") {
 		pvrtc(image, to.c_str());
