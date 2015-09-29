@@ -150,7 +150,7 @@ void windowsIcon(Image image, const char* filename) {
 	pngimage.height = scaled.height;
 	pngimage.format = PNG_FORMAT_RGBA;
 	pngimage.flags = 0;
-	png_image_write_to_stdio(&pngimage, file, 1, scaled.pixels, scaled.stride, NULL);
+	png_image_write_to_stdio(&pngimage, file, 0, scaled.pixels, scaled.stride, NULL);
 
 	std::vector<byte> pngSize = convertIntToByteArrayLE(static_cast<int>(ftell(file)) - (iconHeaderSize + iconDirEntrySize * 4 + getBMPSize(16, 16) + getBMPSize(32, 32) + getBMPSize(48, 48)));
 	fseek(file, iconHeaderSize + iconDirEntrySize * 3 + 8, SEEK_SET);
@@ -179,7 +179,7 @@ void macIcon(Image image, const char* filename) {
 	pngimage.height = scaled.height;
 	pngimage.format = PNG_FORMAT_RGBA;
 	pngimage.flags = 0;
-	png_image_write_to_stdio(&pngimage, file, 1, scaled.pixels, scaled.stride, NULL);
+	png_image_write_to_stdio(&pngimage, file, 0, scaled.pixels, scaled.stride, NULL);
 
 	int icon08size = static_cast<int>(ftell(file) - 8);
 	fputs("ic09----", file);
@@ -187,7 +187,7 @@ void macIcon(Image image, const char* filename) {
 	scaled = scaleKeepAspect(image, 512, 512, true);
 	pngimage.width = scaled.width;
 	pngimage.height = scaled.height;
-	png_image_write_to_stdio(&pngimage, file, 1, scaled.pixels, scaled.stride, NULL);
+	png_image_write_to_stdio(&pngimage, file, 0, scaled.pixels, scaled.stride, NULL);
 
 	int icon09size = static_cast<int>(ftell(file) - icon08size - 8);
 	fputs("ic10----", file);
@@ -195,7 +195,7 @@ void macIcon(Image image, const char* filename) {
 	scaled = scaleKeepAspect(image, 1024, 1024, true);
 	pngimage.width = scaled.width;
 	pngimage.height = scaled.height;
-	png_image_write_to_stdio(&pngimage, file, 1, scaled.pixels, scaled.stride, NULL);
+	png_image_write_to_stdio(&pngimage, file, 0, scaled.pixels, scaled.stride, NULL);
 
 	int icon10size = static_cast<int>(ftell(file) - icon09size - icon08size - 8);
 

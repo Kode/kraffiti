@@ -70,7 +70,7 @@ Image scaleKeepAspect(Image image, int width, int height, bool pointsample) {
 	double ow = image.width;
 	double oh = image.height;
 	
-	if (w / h != ow / oh) {
+	if (w / h == ow / oh) {
 		return scale(image, width, height, pointsample);
 	}
 
@@ -94,10 +94,10 @@ Image scaleKeepAspect(Image image, int width, int height, bool pointsample) {
 	for (int y = 0; y < scaled.height; ++y) for (int x = 0; x < scaled.width; ++x) {
 		int oy = static_cast<int>(h / 2.0 - oh * scale / 2.0 + y);
 		int ox = static_cast<int>(w / 2.0 - ow * scale / 2.0 + x);
-		result.pixels[oy * result.stride + ox * 4 + 0] = scaled.pixels[y * result.stride + x * 4 + 0];
-		result.pixels[oy * result.stride + ox * 4 + 1] = scaled.pixels[y * result.stride + x * 4 + 1];
-		result.pixels[oy * result.stride + ox * 4 + 2] = scaled.pixels[y * result.stride + x * 4 + 2];
-		result.pixels[oy * result.stride + ox * 4 + 3] = scaled.pixels[y * result.stride + x * 4 + 3];
+		result.pixels[oy * result.stride + ox * 4 + 0] = scaled.pixels[y * scaled.stride + x * 4 + 0];
+		result.pixels[oy * result.stride + ox * 4 + 1] = scaled.pixels[y * scaled.stride + x * 4 + 1];
+		result.pixels[oy * result.stride + ox * 4 + 2] = scaled.pixels[y * scaled.stride + x * 4 + 2];
+		result.pixels[oy * result.stride + ox * 4 + 3] = scaled.pixels[y * scaled.stride + x * 4 + 3];
 	}
 
 	return result;
