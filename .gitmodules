@@ -1,7 +1,3 @@
-[submodule "imageworsener"]
-	path = imageworsener
-	url = ../imageworsener
-	branch = master
 [submodule "Libraries/astc-encoder"]
 	path = Libraries/astc-encoder
 	url = ../astc-encoder.git
