@@ -103,7 +103,6 @@ Image scaleKeepAspect(Image image, int width, int height, bool pointsample) {
 	return result;
 }
 
-
 namespace {
 	int pow(int pow) {
 		int ret = 1;
