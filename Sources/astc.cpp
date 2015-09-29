@@ -1,4 +1,5 @@
 #include "astc.h"
+/*
 #include "../Libraries/astc-encoder/Source/astc_codec_internals.h"
 #include <math.h>
 #include <stdio.h>
@@ -229,39 +230,39 @@ namespace {
 		};
 		
 		// Exhaustive
-		/*plimit_autoset = PARTITION_COUNT;
-		oplimit_autoset = 1000.0f;
-		mincorrel_autoset = 0.99f;
-		dblimit_autoset_2d = 999.0f;
-		dblimit_autoset_3d = 999.0f;
-		bmc_autoset = 100;
-		maxiters_autoset = 4;
+		//plimit_autoset = PARTITION_COUNT;
+		//oplimit_autoset = 1000.0f;
+		//mincorrel_autoset = 0.99f;
+		//dblimit_autoset_2d = 999.0f;
+		//dblimit_autoset_3d = 999.0f;
+		//bmc_autoset = 100;
+		//maxiters_autoset = 4;
 
-		preset_has_been_set++;
-		switch (ydim_2d)
-		{
-		case 4:
-			pcdiv = 3;
-			break;
-		case 5:
-			pcdiv = 1;
-			break;
-		case 6:
-			pcdiv = 1;
-			break;
-		case 8:
-			pcdiv = 1;
-			break;
-		case 10:
-			pcdiv = 1;
-			break;
-		case 12:
-			pcdiv = 1;
-			break;
-		default:
-			pcdiv = 1;
-			break;
-		}*/
+		//preset_has_been_set++;
+		//switch (ydim_2d)
+		//{
+		//case 4:
+		//	pcdiv = 3;
+		//	break;
+		//case 5:
+		//	pcdiv = 1;
+		//	break;
+		//case 6:
+		//	pcdiv = 1;
+		//	break;
+		//case 8:
+		//	pcdiv = 1;
+		//	break;
+		//case 10:
+		//	pcdiv = 1;
+		//	break;
+		//case 12:
+		//	pcdiv = 1;
+		//	break;
+		//default:
+		//	pcdiv = 1;
+		//	break;
+		//}
 		
 		// SRGB
 		//perform_srgb_transform = 1;
@@ -411,3 +412,4 @@ void astc(iw_context* context, const char* filename) {
 	iw_get_output_image(context, &img);
 	writeASTC(&img, filename);
 }
+*/

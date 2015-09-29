@@ -1,4 +1,9 @@
-struct iw_context;
+#pragma once
 
-void transparent(iw_context* context, unsigned color);
-void prealpha(iw_context* context);
+#include "Image.h"
+
+Image transparent(Image image, unsigned color);
+Image prealpha(Image image);
+Image scale(Image image, int width, int height, bool pointsample);
+Image scaleKeepAspect(Image image, int width, int height, bool pointsample);
+Image toPowerOfTwo(Image image);

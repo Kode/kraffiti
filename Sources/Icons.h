@@ -1,6 +1,6 @@
 #pragma once
 
-#include <imagew.h>
+#include "Image.h"
 
-void windowsIcon(iw_context* context, const char* filename);
-void macIcon(iw_context* context, const char* filename);
+void windowsIcon(Image image, const char* filename);
+void macIcon(Image image, const char* filename);

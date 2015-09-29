@@ -4,17 +4,13 @@ var project = new Project("kraffiti");
 solution.setCmd();
 
 project.addExclude('.git/**');
-project.addExclude('imageworsener/.git/**');
 project.addExclude('build/**');
 
 project.addDefine('HAVE_CONFIG_H');
 project.addDefine("PNG_NO_CONFIG_H");
 
 project.addFile('Sources/**');
-project.addFile('imageworsener/src/*.h');
-project.addFile('imageworsener/src/*.c');
 project.addFile('Libraries/PVRTexTool/Include/**');
-project.addExclude('imageworsener/src/imagew-cmd.c');
 
 project.addFile("zlib/*.h");
 project.addFile("zlib/*.c");
@@ -43,6 +39,7 @@ project.addExclude("libjpeg/djpeg.c");
 project.addExclude("libjpeg/jpegtran.c");
 project.addExclude("libjpeg/example.c");
 
+/*
 project.addFile('Libraries/astc-encoder/Source/**');
 project.addExclude('Libraries/astc-encoder/Source/exr_to_htga.cpp');
 project.addExclude('Libraries/astc-encoder/Source/imgdiff.cpp');
@@ -50,12 +47,12 @@ project.addExclude('Libraries/astc-encoder/Source/astc_averages_and_directions_e
 if (platform === Platform.Windows) {
 	project.addIncludeDir('Libraries/astc-encoder/Source/win32-2010/astcenc');
 }
+*/
 
 project.addIncludeDir("Sources");
 project.addIncludeDir("zlib");
 project.addIncludeDir("libpng");
 project.addIncludeDir("libjpeg");
-project.addIncludeDir("imageworsener/src");
 project.addIncludeDir('Libraries/PVRTexTool/Include');
 
 if (platform === Platform.Windows) {
