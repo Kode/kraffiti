@@ -7,7 +7,9 @@
 #include <stdlib.h>
 #include <string>
 #include <png.h>
-#include <jpeglib.h>
+extern "C" {
+	#include <jpeglib.h>
+}
 
 bool startsWith(std::string a, std::string b) {
 	return a.substr(0, b.size()) == b;
