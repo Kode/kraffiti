@@ -67,12 +67,13 @@ Image readJPEG(const char* filename) {
 	JSAMPARRAY buffer = (*cinfo.mem->alloc_sarray)((j_common_ptr)&cinfo, JPOOL_IMAGE, row_stride, 1);
 
 	while (cinfo.output_scanline < cinfo.output_height) {
+		int scanline = cinfo.output_scanline;
 		jpeg_read_scanlines(&cinfo, buffer, 1);
 		for (unsigned x = 0; x < cinfo.output_width; ++x) {
-			image.pixels[cinfo.output_scanline * image.stride + x * 4 + 0] = buffer[0][x * cinfo.num_components + 0];
-			image.pixels[cinfo.output_scanline * image.stride + x * 4 + 1] = buffer[0][x * cinfo.num_components + 1];
-			image.pixels[cinfo.output_scanline * image.stride + x * 4 + 2] = buffer[0][x * cinfo.num_components + 2];
-			image.pixels[cinfo.output_scanline * image.stride + x * 4 + 3] = 255;
+			image.pixels[scanline * image.stride + x * 4 + 0] = buffer[0][x * cinfo.num_components + 0];
+			image.pixels[scanline * image.stride + x * 4 + 1] = buffer[0][x * cinfo.num_components + 1];
+			image.pixels[scanline * image.stride + x * 4 + 2] = buffer[0][x * cinfo.num_components + 2];
+			image.pixels[scanline * image.stride + x * 4 + 3] = 255;
 		}
 	}
 
@@ -84,7 +85,7 @@ Image readJPEG(const char* filename) {
 }
 
 void writeJPEG(Image image, const char* filename) {
-	int quality = 8;
+	int quality = 85;
 
 	jpeg_compress_struct cinfo;
 	jpeg_error_mgr jerr;
@@ -104,7 +105,7 @@ void writeJPEG(Image image, const char* filename) {
 
 	cinfo.image_width = image.width;
 	cinfo.image_height = image.height;
-	cinfo.input_components = 4;
+	cinfo.input_components = 3;
 	cinfo.in_color_space = JCS_RGB;
 
 	jpeg_set_defaults(&cinfo);
@@ -112,10 +113,17 @@ void writeJPEG(Image image, const char* filename) {
 
 	jpeg_start_compress(&cinfo, TRUE);
 
+	byte* row = (byte*)malloc(image.width * 3);
 	while (cinfo.next_scanline < cinfo.image_height) {
-		row_pointer[0] = &image.pixels[cinfo.next_scanline * image.stride];
+		for (int x = 0; x < image.width; ++x) {
+			row[x * 3 + 0] = image.pixels[cinfo.next_scanline * image.stride + x * 4 + 0];
+			row[x * 3 + 1] = image.pixels[cinfo.next_scanline * image.stride + x * 4 + 1];
+			row[x * 3 + 2] = image.pixels[cinfo.next_scanline * image.stride + x * 4 + 2];
+		}
+		row_pointer[0] = row;
 		jpeg_write_scanlines(&cinfo, row_pointer, 1);
 	}
+	free(row);
 
 	jpeg_finish_compress(&cinfo);
 	fclose(outfile);
