@@ -1,5 +1,5 @@
 #pragma once
 
-#include <imagew.h>
+#include "Image.h"
 
-void pvrtc(iw_context* context, const char* filename);
+void pvrtc(Image image, const char* filename);

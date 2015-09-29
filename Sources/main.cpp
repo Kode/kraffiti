@@ -2,89 +2,12 @@
 #include "astc.h"
 #include "pvrtc.h"
 #include "Preprocessor.h"
-#include <imagew.h>
 #include <memory.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string>
-
-namespace {
-	unsigned char input_initial_bytes[12];
-	size_t input_initial_bytes_stored;
-	size_t input_initial_bytes_consumed;
-
-	int my_readfn(struct iw_context *ctx, struct iw_iodescr *iodescr, void *buf, size_t nbytes, size_t *pbytesread) {
-		size_t recorded_bytes_remaining;
-		struct params_struct *p = (struct params_struct *)iw_get_userdata(ctx);
-
-		recorded_bytes_remaining = input_initial_bytes_stored - input_initial_bytes_consumed;
-		if (recorded_bytes_remaining > 0) {
-			if (recorded_bytes_remaining >= nbytes) {
-				// The read can be satisfied from the recorded bytes.
-				memcpy(buf, &input_initial_bytes[input_initial_bytes_consumed], nbytes);
-				input_initial_bytes_consumed += nbytes;
-				*pbytesread = nbytes;
-				return 1;
-			}
-			else {
-				size_t bytes_to_read_from_file;
-				size_t bytes_read_from_file;
-
-				// Need to use some recorded bytes ...
-				memcpy(buf, &input_initial_bytes[input_initial_bytes_consumed], recorded_bytes_remaining);
-				input_initial_bytes_consumed += recorded_bytes_remaining;
-
-				// ... and read the rest from the file.
-				bytes_to_read_from_file = nbytes - recorded_bytes_remaining;
-				bytes_read_from_file = fread(&((unsigned char*)buf)[recorded_bytes_remaining], 1, bytes_to_read_from_file, (FILE*)iodescr->fp);
-				*pbytesread = recorded_bytes_remaining + bytes_read_from_file;
-				return 1;
-			}
-		}
-
-		*pbytesread = fread(buf, 1, nbytes, (FILE*)iodescr->fp);
-		return 1;
-	}
-
-	int my_getfilesizefn(struct iw_context *ctx, struct iw_iodescr *iodescr, iw_int64 *pfilesize) {
-		int ret;
-		long lret;
-		struct params_struct *p = (struct params_struct *)iw_get_userdata(ctx);
-
-		FILE *fp = (FILE*)iodescr->fp;
-
-		// TODO: Rewrite this to support >4GB file sizes.
-		ret = fseek(fp, 0, SEEK_END);
-		if (ret != 0) return 0;
-		lret = ftell(fp);
-		if (lret < 0) return 0;
-		*pfilesize = (iw_int64)lret;
-		fseek(fp, (long)input_initial_bytes_stored, SEEK_SET);
-		return 1;
-	}
-
-	int my_seekfn(struct iw_context *ctx, struct iw_iodescr *iodescr, iw_int64 offset, int whence) {
-		FILE *fp = (FILE*)iodescr->fp;
-		fseek(fp, (long)offset, whence);
-		return 1;
-	}
-
-	int my_writefn(struct iw_context *ctx, struct iw_iodescr *iodescr, const void *buf, size_t nbytes) {
-		fwrite(buf, 1, nbytes, (FILE*)iodescr->fp);
-		return 1;
-	}
-
-	int pow(int pow) {
-		int ret = 1;
-		for (int i = 0; i < pow; ++i) ret *= 2;
-		return ret;
-	}
-
-	int getPower2(int i) {
-		for (int power = 0;; ++power)
-			if (pow(power) >= i) return pow(power);
-	}
-}
+#include <png.h>
+#include <jpeglib.h>
 
 bool startsWith(std::string a, std::string b) {
 	return a.substr(0, b.size()) == b;
@@ -94,14 +17,136 @@ bool endsWith(std::string a, std::string b) {
 	return a.substr(a.size() - b.size(), b.size()) == b;
 }
 
-void writeImage(iw_context* context, const char* filename, int width, int height, int fmt) {
-	iw_iodescr writedescr;
-	memset(&writedescr, 0, sizeof(struct iw_iodescr));
-	writedescr.write_fn = my_writefn;
-	writedescr.seek_fn = my_seekfn;
-	writedescr.fp = (void*)fopen(filename, "wb");
-	iw_write_file_by_fmt(context, &writedescr, fmt);
-	fclose((FILE*)writedescr.fp);
+struct my_error_mgr {
+	jpeg_error_mgr pub;
+	jmp_buf setjmp_buffer;
+};
+
+typedef struct my_error_mgr* my_error_ptr;
+
+void my_error_exit(j_common_ptr cinfo) {
+	my_error_ptr myerr = (my_error_ptr)cinfo->err;
+	(*cinfo->err->output_message)(cinfo);
+	longjmp(myerr->setjmp_buffer, 1);
+}
+
+Image readJPEG(const char* filename) {
+	my_error_mgr jerr;
+	
+	FILE* infile;
+	
+	int row_stride;
+
+	if ((infile = fopen(filename, "rb")) == NULL) {
+		fprintf(stderr, "can't open %s\n", filename);
+		return Image(NULL, 0, 0);
+	}
+
+	jpeg_decompress_struct cinfo;
+	cinfo.err = jpeg_std_error(&jerr.pub);
+	jerr.pub.error_exit = my_error_exit;
+
+	if (setjmp(jerr.setjmp_buffer)) {
+		jpeg_destroy_decompress(&cinfo);
+		fclose(infile);
+		return Image(NULL, 0, 0);
+	}
+
+	jpeg_create_decompress(&cinfo);
+
+	jpeg_stdio_src(&cinfo, infile);
+
+	jpeg_read_header(&cinfo, TRUE);
+	jpeg_start_decompress(&cinfo);
+
+	Image image((byte*)malloc(cinfo.output_width * cinfo.output_height * 4), cinfo.output_width, cinfo.output_height);
+	
+	row_stride = cinfo.output_width * cinfo.output_components;
+	JSAMPARRAY buffer = (*cinfo.mem->alloc_sarray)((j_common_ptr)&cinfo, JPOOL_IMAGE, row_stride, 1);
+
+	while (cinfo.output_scanline < cinfo.output_height) {
+		jpeg_read_scanlines(&cinfo, buffer, 1);
+		for (unsigned x = 0; x < cinfo.output_width; ++x) {
+			image.pixels[cinfo.output_scanline * image.stride + x * 4 + 0] = buffer[0][x * cinfo.num_components + 0];
+			image.pixels[cinfo.output_scanline * image.stride + x * 4 + 1] = buffer[0][x * cinfo.num_components + 1];
+			image.pixels[cinfo.output_scanline * image.stride + x * 4 + 2] = buffer[0][x * cinfo.num_components + 2];
+			image.pixels[cinfo.output_scanline * image.stride + x * 4 + 3] = 255;
+		}
+	}
+
+	jpeg_finish_decompress(&cinfo);
+	jpeg_destroy_decompress(&cinfo);
+	fclose(infile);
+
+	return image;
+}
+
+void writeJPEG(Image image, const char* filename) {
+	int quality = 8;
+
+	jpeg_compress_struct cinfo;
+	jpeg_error_mgr jerr;
+	
+	FILE* outfile;
+	JSAMPROW row_pointer[1];
+	
+	cinfo.err = jpeg_std_error(&jerr);
+	
+	jpeg_create_compress(&cinfo);
+
+	if ((outfile = fopen(filename, "wb")) == NULL) {
+		fprintf(stderr, "can't open %s\n", filename);
+		exit(1);
+	}
+	jpeg_stdio_dest(&cinfo, outfile);
+
+	cinfo.image_width = image.width;
+	cinfo.image_height = image.height;
+	cinfo.input_components = 4;
+	cinfo.in_color_space = JCS_RGB;
+
+	jpeg_set_defaults(&cinfo);
+	jpeg_set_quality(&cinfo, quality, TRUE);
+
+	jpeg_start_compress(&cinfo, TRUE);
+
+	while (cinfo.next_scanline < cinfo.image_height) {
+		row_pointer[0] = &image.pixels[cinfo.next_scanline * image.stride];
+		jpeg_write_scanlines(&cinfo, row_pointer, 1);
+	}
+
+	jpeg_finish_compress(&cinfo);
+	fclose(outfile);
+	jpeg_destroy_compress(&cinfo);
+}
+
+Image readPNG(const char* filename) {
+	png_image image = { 0 };
+	image.version = PNG_IMAGE_VERSION;
+
+	if (png_image_begin_read_from_file(&image, filename)) {
+		image.format = PNG_FORMAT_RGBA;
+		png_bytep buffer = (png_bytep)malloc(PNG_IMAGE_SIZE(image));
+		if (buffer != NULL && png_image_finish_read(&image, NULL, buffer, 0, NULL)) {
+			return Image(buffer, image.width, image.height);
+		}
+	}
+	// error
+	return Image(NULL, 0, 0);
+}
+
+void writePNG(Image image, const char* filename) {
+	png_image img = { 0 };
+	img.version = PNG_IMAGE_VERSION;
+	img.opaque = NULL;
+	img.width = image.width;
+	img.height = image.height;
+	img.format = PNG_FORMAT_RGBA;
+	img.flags = 0;
+
+	if (!png_image_write_to_file(&img, filename, 1, image.pixels, 0, NULL)) {
+		// error
+	}
 }
 
 int main(int argc, char** argv) {
@@ -171,28 +216,16 @@ int main(int argc, char** argv) {
 		}
 	}
 
-	iw_context* context = iw_create_context(NULL);
+	Image image(NULL, 0, 0);
+	if (endsWith(from, ".png")) image = readPNG(from.c_str());
+	else image = readJPEG(from.c_str());
 
-	iw_iodescr readdescr;
-	memset(&readdescr, 0, sizeof(struct iw_iodescr));
-	readdescr.read_fn = my_readfn;
-	readdescr.getfilesize_fn = my_getfilesizefn;
-	readdescr.fp = (void*)fopen(from.c_str(), "rb");
-	iw_read_file_by_fmt(context, &readdescr, endsWith(from, ".png") ? IW_FORMAT_PNG : IW_FORMAT_JPEG);
-	fclose((FILE*)readdescr.fp);
-
-	iw_set_allow_opt(context, IW_OPT_PALETTE, 0);
-	iw_set_allow_opt(context, IW_OPT_STRIP_ALPHA, 0);
-	iw_set_allow_opt(context, IW_OPT_GRAYSCALE, 0);
-	iw_set_allow_opt(context, IW_OPT_BINARY_TRNS, 0);
-	int originalWidth = iw_get_value(context, IW_VAL_INPUT_WIDTH);
-	int originalHeight = iw_get_value(context, IW_VAL_INPUT_HEIGHT);
 	if (scale != 1) {
-		width = originalWidth * scale;
-		height = originalHeight * scale;
+		width = image.width * scale;
+		height = image.height * scale;
 	}
-	if (width < 0) width = originalWidth;
-	if (height < 0) height = originalHeight;
+	if (width < 0) width = image.width;
+	if (height < 0) height = image.height;
 
 	printf("#%ix%i", width, height);
 
@@ -201,81 +234,56 @@ int main(int argc, char** argv) {
 	}
 
 	if (dobackground) {
-		iw_color background;
-		background.c[IW_CHANNELTYPE_RED] = ((backgroundColor & 0xff000000) >> 24) / 255.0;
-		background.c[IW_CHANNELTYPE_GREEN] = ((backgroundColor & 0xff0000) >> 16) / 255.0;
-		background.c[IW_CHANNELTYPE_BLUE] = ((backgroundColor & 0xff00) >> 8) / 255.0;
-		background.c[IW_CHANNELTYPE_ALPHA] = (backgroundColor & 0xff) / 255.0;
-		iw_set_apply_bkgd_2(context, &background);
+		for (int y = 0; y < image.height; ++y) for (int x = 0; x < image.width; ++x) {
+			float alpha = image.pixels[y * image.stride + x * 4 + 3] / 255.0f;
+			float red = ((backgroundColor & 0xff000000) >> 24) / 255.0f;
+			float green = ((backgroundColor & 0xff0000) >> 16) / 255.0f;
+			float blue = ((backgroundColor & 0xff00) >> 8) / 255.0f;
+			image.pixels[y * image.stride + x * 4 + 0] = (byte)((alpha * (image.pixels[y * image.stride + x * 4 + 0] / 255.0f) + (1 - alpha) * red) * 255.0f);
+			image.pixels[y * image.stride + x * 4 + 1] = (byte)((alpha * (image.pixels[y * image.stride + x * 4 + 1] / 255.0f) + (1 - alpha) * green) * 255.0f);
+			image.pixels[y * image.stride + x * 4 + 2] = (byte)((alpha * (image.pixels[y * image.stride + x * 4 + 2] / 255.0f) + (1 - alpha) * blue) * 255.0f);
+			image.pixels[y * image.stride + x * 4 + 3] = backgroundColor & 0xff;
+		}
 	}
 
-	if (pointSampling) {
-		iw_set_resize_alg(context, 0, IW_RESIZETYPE_NEAREST, 0, 0, 0);
-		iw_set_resize_alg(context, 1, IW_RESIZETYPE_NEAREST, 0, 0, 0);
-	}
-
-	if (format == "png" || format == "pvrtc" || format == "astc" || format == "jpg" || format == "jpeg") {
-		if (format == "jpg" || format == "jpeg") {
-			iw_set_output_profile(context, iw_get_profile_by_fmt(IW_FORMAT_JPEG) & ~IW_PROFILE_16BPS);
+	if (topowerofto || width != image.width || height != image.height) {
+		if (keepaspect) {
+			image = scaleKeepAspect(image, width, height, pointSampling);
 		}
 		else {
-			iw_set_output_profile(context, iw_get_profile_by_fmt(IW_FORMAT_PNG) & ~IW_PROFILE_16BPS);
+			image = ::scale(image, width, height, pointSampling);
 		}
-		iw_set_output_depth(context, 8);
-		//figure_out_size_and_density(p, context);
-		
 		if (topowerofto) {
-			iw_set_output_canvas_size(context, getPower2(width), getPower2(height));
-			iw_set_output_image_size(context, width, height);
+			image = toPowerOfTwo(image);
 		}
-		else {
-			iw_set_output_canvas_size(context, width, height);
-		}
-
-		double w = width;
-		double h = height;
-		double ow = originalWidth;
-		double oh = originalHeight;
-		if (keepaspect && w / h != ow / oh) {
-			double scale = 1;
-			if (ow / oh > w / h) {
-				scale = w / ow;
-			}
-			else {
-				scale = h / oh;
-			}
-			iw_set_value_dbl(context, IW_VAL_TRANSLATE_X, w / 2.0 - ow * scale / 2.0);
-			iw_set_value_dbl(context, IW_VAL_TRANSLATE_Y, h / 2.0 - oh * scale / 2.0);
-			iw_set_output_image_size(context, ow * scale, oh * scale);
-		}
-		iw_process_image(context);
 	}
 
 	if (dotransparency) {
-		transparent(context, transparentColor);
+		image = transparent(image, transparentColor);
 	}
 
 	if (doprealpha && !dobackground) {
-		prealpha(context);
+		image = prealpha(image);
 	}
 
 	if (format == "png") {
-		writeImage(context, to.c_str(), width, height, IW_FORMAT_PNG);
+		writePNG(image, to.c_str());
 	}
 	else if (format == "jpg" || format == "jpeg") {
-		writeImage(context, to.c_str(), width, height, IW_FORMAT_JPEG);
+		writeJPEG(image, to.c_str());
 	}
 	else if (format == "ico") {
-		windowsIcon(context, to.c_str());
+		windowsIcon(image, to.c_str());
 	}
 	else if (format == "icns") {
-		macIcon(context, to.c_str());
+		macIcon(image, to.c_str());
 	}
 	else if (format == "astc") {
-		astc(context, to.c_str());
+		//astc(context, to.c_str());
+		// TODO
 	}
 	else if (format == "pvrtc") {
-		pvrtc(context, to.c_str());
+		pvrtc(image, to.c_str());
 	}
 	else {
 		// Unknown format

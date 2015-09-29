@@ -1,6 +1,7 @@
 #include "Icons.h"
-#include "ByteStream.h"
 #include "Image.h"
+#include "Preprocessor.h"
+#include <png.h>
 #include <stdio.h>
 #include <string.h>
 #include <vector>
@@ -56,95 +57,59 @@ namespace {
 		return buffer;
 	}
 
-}
-
-void scale(iw_context* context, int width, int height) {
-	/*Image* image;
-
-	//Path customIcon = directory.resolve("icon.png");
-	//if (Files::exists(customIcon)) {
-	//	image = new Image(customIcon);
-	//}
-	//else {
-		image = ball;
-	//}
-	Image* scaledImage = image->scale(width, height);
-	if (color != transparent) scaledImage->replaceAlpha(color == white ? 0xffffff00 : 0);
-	return scaledImage;*/
-
-	iw_set_output_profile(context, IW_PROFILE_TRANSPARENCY); // iw_get_profile_by_fmt(IW_FORMAT_PNG));
-	iw_set_output_depth(context, 8);
-	//figure_out_size_and_density(p, context);
-	iw_set_output_canvas_size(context, width, height);
-
-	int originalWidth = iw_get_value(context, IW_VAL_INPUT_WIDTH);
-	int originalHeight = iw_get_value(context, IW_VAL_INPUT_HEIGHT);
-	double w = width;
-	double h = height;
-	double ow = originalWidth;
-	double oh = originalHeight;
-	if (w / h != ow / oh) {
-		double scale = 1;
-		if (ow / oh > w / h) {
-			scale = w / ow;
+	void write(FILE* file, const std::vector<byte>& data) {
+		for (unsigned i = 0; i < data.size(); ++i) {
+			fputc(data[i], file);
 		}
-		else {
-			scale = h / oh;
-		}
-		iw_set_value_dbl(context, IW_VAL_TRANSLATE_X, w / 2.0 - ow * scale / 2.0);
-		iw_set_value_dbl(context, IW_VAL_TRANSLATE_Y, h / 2.0 - oh * scale / 2.0);
-		iw_set_output_image_size(context, ow * scale, oh * scale);
 	}
-
-	iw_process_image(context);
 }
 
-void writeIcoHeader(ByteStream& stream) {
-	stream.put(0); stream.put(0); //Reserved. Must always be 0.
-	stream.write(convertShortToByteArrayLE((short)1)); //Specifies image type: 1 for icon (.ICO) image, 2 for cursor (.CUR) image. Other values are invalid.
-	stream.write(convertShortToByteArrayLE((short)4)); //Specifies number of images in the file.
+void writeIcoHeader(FILE* file) {
+	fputc(0, file); fputc(0, file); //Reserved. Must always be 0.
+	write(file, convertShortToByteArrayLE((short)1)); //Specifies image type: 1 for icon (.ICO) image, 2 for cursor (.CUR) image. Other values are invalid.
+	write(file, convertShortToByteArrayLE((short)4)); //Specifies number of images in the file.
 }
 
-void writeIconDirEntry(ByteStream& stream, int width, int height, int offset) {
-	stream.put(width == 256 ? 0 : width); //Specifies image width in pixels. Can be any number between 0 and 255. Value 0 means image width is 256 pixels.
-	stream.put(height == 256 ? 0 : height); //Specifies image height in pixels. Can be any number between 0 and 255. Value 0 means image height is 256 pixels.
-	stream.put(0); //Specifies number of colors in the color palette. Should be 0 if the image does not use a color palette.
-	stream.put(0); //Reserved. Should be 0.[Notes 2]
-	stream.write(convertShortToByteArrayLE((short)1)); //Specifies color planes. Should be 0 or 1.[Notes 3]
-	stream.write(convertShortToByteArrayLE((short)32)); //Specifies bits per pixel. [Notes 4]
-	stream.write(convertIntToByteArrayLE(width * height * 4 + 40)); //Specifies the size of the image's data in bytes
-	stream.write(convertIntToByteArrayLE(offset)); //Specifies the offset of BMP or PNG data from the beginning of the ICO/CUR file
+void writeIconDirEntry(FILE* file, int width, int height, int offset) {
+	fputc(width == 256 ? 0 : width, file); //Specifies image width in pixels. Can be any number between 0 and 255. Value 0 means image width is 256 pixels.
+	fputc(height == 256 ? 0 : height, file); //Specifies image height in pixels. Can be any number between 0 and 255. Value 0 means image height is 256 pixels.
+	fputc(0, file); //Specifies number of colors in the color palette. Should be 0 if the image does not use a color palette.
+	fputc(0, file); //Reserved. Should be 0.[Notes 2]
+	write(file, convertShortToByteArrayLE((short)1)); //Specifies color planes. Should be 0 or 1.[Notes 3]
+	write(file, convertShortToByteArrayLE((short)32)); //Specifies bits per pixel. [Notes 4]
+	write(file, convertIntToByteArrayLE(width * height * 4 + 40)); //Specifies the size of the image's data in bytes
+	write(file, convertIntToByteArrayLE(offset)); //Specifies the offset of BMP or PNG data from the beginning of the ICO/CUR file
 }
 
-void writeBMPHeader(ByteStream& stream, int width, int height) {
-	stream.write(convertIntToByteArrayLE(bmpHeaderSize)); //the size of this header (40 bytes)
-	stream.write(convertIntToByteArrayLE(width)); //the bitmap width in pixels (signed integer).
-	stream.write(convertIntToByteArrayLE(height * 2)); //the bitmap height in pixels (signed integer).
-	stream.write(convertShortToByteArrayLE((short)1)); //the number of color planes being used. Must be set to 1.
-	stream.write(convertShortToByteArrayLE((short)32)); //the number of bits per pixel, which is the color depth of the image. Typical values are 1, 4, 8, 16, 24 and 32.
-	stream.write(convertIntToByteArrayLE(0)); //the compression method being used. See the next table for a list of possible values.
-	stream.write(convertIntToByteArrayLE(width * height * 4)); //the image size. This is the size of the raw bitmap data (see below), and should not be confused with the file size.
-	stream.write(convertIntToByteArrayLE(0)); //the horizontal resolution of the image. (pixel per meter, signed integer)
-	stream.write(convertIntToByteArrayLE(0)); //the vertical resolution of the image. (pixel per meter, signed integer)
-	stream.write(convertIntToByteArrayLE(0)); //the number of colors in the color palette, or 0 to default to 2n.
-	stream.write(convertIntToByteArrayLE(0)); //the number of important colors used, or 0 when every color is important; generally ignored.
+void writeBMPHeader(FILE* file, int width, int height) {
+	write(file, convertIntToByteArrayLE(bmpHeaderSize)); //the size of this header (40 bytes)
+	write(file, convertIntToByteArrayLE(width)); //the bitmap width in pixels (signed integer).
+	write(file, convertIntToByteArrayLE(height * 2)); //the bitmap height in pixels (signed integer).
+	write(file, convertShortToByteArrayLE((short)1)); //the number of color planes being used. Must be set to 1.
+	write(file, convertShortToByteArrayLE((short)32)); //the number of bits per pixel, which is the color depth of the image. Typical values are 1, 4, 8, 16, 24 and 32.
+	write(file, convertIntToByteArrayLE(0)); //the compression method being used. See the next table for a list of possible values.
+	write(file, convertIntToByteArrayLE(width * height * 4)); //the image size. This is the size of the raw bitmap data (see below), and should not be confused with the file size.
+	write(file, convertIntToByteArrayLE(0)); //the horizontal resolution of the image. (pixel per meter, signed integer)
+	write(file, convertIntToByteArrayLE(0)); //the vertical resolution of the image. (pixel per meter, signed integer)
+	write(file, convertIntToByteArrayLE(0)); //the number of colors in the color palette, or 0 to default to 2n.
+	write(file, convertIntToByteArrayLE(0)); //the number of important colors used, or 0 when every color is important; generally ignored.
 }
 
-void writeBMP(ByteStream& stream, iw_image* image) {
-	writeBMPHeader(stream, image->width, image->height);
-	for (int y = image->height - 1; y >= 0; --y) {
-		for (int x = 0; x < image->width; ++x) {
+void writeBMP(FILE* file, Image image) {
+	writeBMPHeader(file, image.width, image.height);
+	for (int y = image.height - 1; y >= 0; --y) {
+		for (int x = 0; x < image.width; ++x) {
 			//stream.put(image->b(x, y));
 			//stream.put(image->g(x, y));
 			//stream.put(image->r(x, y));
 			//stream.put(image->a(x, y));
 
 			//stream.write(convertIntToByteArrayLE(image->argb(x, y)));
-
-			stream.put(image->pixels[y * image->bpr + x * 4 + 2]);
-			stream.put(image->pixels[y * image->bpr + x * 4 + 1]);
-			stream.put(image->pixels[y * image->bpr + x * 4 + 0]);
-			stream.put(image->pixels[y * image->bpr + x * 4 + 3]);
+			
+			fputc(image.pixels[y * image.stride + x * 4 + 2], file);
+			fputc(image.pixels[y * image.stride + x * 4 + 1], file);
+			fputc(image.pixels[y * image.stride + x * 4 + 0], file);
+			fputc(image.pixels[y * image.stride + x * 4 + 3], file);
 		}
 	}
 }
@@ -153,66 +118,48 @@ int getBMPSize(int width, int height) {
 	return width * height * 4 + bmpHeaderSize;
 }
 
-int stream_seekfn(struct iw_context *ctx, struct iw_iodescr *iodescr, iw_int64 offset, int whence) {
-	//FILE *fp = (FILE*)iodescr->fp;
-	//fseek(fp, (long)offset, whence);
-	ByteStream* stream = (ByteStream*)iodescr->fp;
-	stream->seek(whence);
-	return 1;
-}
-
-int stream_writefn(struct iw_context *ctx, struct iw_iodescr *iodescr, const void *buf, size_t nbytes) {
-	//fwrite(buf, 1, nbytes, (FILE*)iodescr->fp);
-	ByteStream* stream = (ByteStream*)iodescr->fp;
-	for (size_t i = 0; i < nbytes; ++i) {
-		stream->put(((byte*)buf)[i]);
-	}
-	return 1;
-}
-
-void windowsIcon(iw_context* context, const char* filename) {
+void windowsIcon(Image image, const char* filename) {
 	//16x16
 	//32x32
 	//48x48
 	//256x256
 
-	ByteStream stream;
-	writeIcoHeader(stream);
+	FILE* file = fopen(filename, "wb");
 
-	writeIconDirEntry(stream, 16, 16, iconHeaderSize + iconDirEntrySize * 4);
-	writeIconDirEntry(stream, 32, 32, iconHeaderSize + iconDirEntrySize * 4 + getBMPSize(16, 16));
-	writeIconDirEntry(stream, 48, 48, iconHeaderSize + iconDirEntrySize * 4 + getBMPSize(16, 16) + getBMPSize(32, 32));
-	writeIconDirEntry(stream, 256, 256, iconHeaderSize + iconDirEntrySize * 4 + getBMPSize(16, 16) + getBMPSize(32, 32) + getBMPSize(48, 48));
+	writeIcoHeader(file);
 
-	scale(context, 16, 16);
-	iw_image img;
-	iw_get_output_image(context, &img);
-	writeBMP(stream, &img);
+	writeIconDirEntry(file, 16, 16, iconHeaderSize + iconDirEntrySize * 4);
+	writeIconDirEntry(file, 32, 32, iconHeaderSize + iconDirEntrySize * 4 + getBMPSize(16, 16));
+	writeIconDirEntry(file, 48, 48, iconHeaderSize + iconDirEntrySize * 4 + getBMPSize(16, 16) + getBMPSize(32, 32));
+	writeIconDirEntry(file, 256, 256, iconHeaderSize + iconDirEntrySize * 4 + getBMPSize(16, 16) + getBMPSize(32, 32) + getBMPSize(48, 48));
 
-	scale(context, 32, 32);
-	iw_get_output_image(context, &img);
-	writeBMP(stream, &img);
+	Image scaled = scaleKeepAspect(image, 16, 16, true);
+	writeBMP(file, scaled);
 
-	scale(context, 48, 48);
-	iw_get_output_image(context, &img);
-	writeBMP(stream, &img);
+	scaled = scaleKeepAspect(image, 32, 32, true);
+	writeBMP(file, scaled);
 
-	scale(context, 256, 256);
-	iw_get_output_image(context, &img);
-	iw_iodescr writedescr;
-	memset(&writedescr, 0, sizeof(struct iw_iodescr));
-	writedescr.write_fn = stream_writefn;
-	writedescr.seek_fn = stream_seekfn;
-	writedescr.fp = &stream;
-	iw_write_file_by_fmt(context, &writedescr, IW_FORMAT_PNG);
+	scaled = scaleKeepAspect(image, 48, 48, true);
+	writeBMP(file, scaled);
 
-	std::vector<byte> pngSize = convertIntToByteArrayLE(static_cast<int>(stream.size()) - (iconHeaderSize + iconDirEntrySize * 4 + getBMPSize(16, 16) + getBMPSize(32, 32) + getBMPSize(48, 48)));
-	for (int i = 0; i < 4; ++i) stream.set(i + iconHeaderSize + iconDirEntrySize * 3 + 8, pngSize[i]);
+	scaled = scaleKeepAspect(image, 256, 256, true);
+	png_image pngimage = { 0 };
+	pngimage.version = PNG_IMAGE_VERSION;
+	pngimage.opaque = NULL;
+	pngimage.width = scaled.width;
+	pngimage.height = scaled.height;
+	pngimage.format = PNG_FORMAT_RGBA;
+	pngimage.flags = 0;
+	png_image_write_to_stdio(&pngimage, file, 1, scaled.pixels, scaled.stride, NULL);
 
-	stream.save(filename);
+	std::vector<byte> pngSize = convertIntToByteArrayLE(static_cast<int>(ftell(file)) - (iconHeaderSize + iconDirEntrySize * 4 + getBMPSize(16, 16) + getBMPSize(32, 32) + getBMPSize(48, 48)));
+	fseek(file, iconHeaderSize + iconDirEntrySize * 3 + 8, SEEK_SET);
+	for (int i = 0; i < 4; ++i) fputc(pngSize[i], file);
+
+	fclose(file);
 }
 
-void macIcon(iw_context* context, const char* filename) {
+void macIcon(Image image, const char* filename) {
 	//16x16
 	//32x32
 	//128x128
@@ -220,47 +167,53 @@ void macIcon(iw_context* context, const char* filename) {
 	//512x512
 	//1024x1024
 
-	ByteStream stream;
+	FILE* file = fopen(filename, "wb");
 
-	iw_iodescr writedescr;
-	memset(&writedescr, 0, sizeof(struct iw_iodescr));
-	writedescr.write_fn = stream_writefn;
-	writedescr.seek_fn = stream_seekfn;
-	writedescr.fp = &stream;
+	fputs("icns----ic08----", file);
+	
+	Image scaled = scaleKeepAspect(image, 256, 256, true);	
+	png_image pngimage = { 0 };
+	pngimage.version = PNG_IMAGE_VERSION;
+	pngimage.opaque = NULL;
+	pngimage.width = scaled.width;
+	pngimage.height = scaled.height;
+	pngimage.format = PNG_FORMAT_RGBA;
+	pngimage.flags = 0;
+	png_image_write_to_stdio(&pngimage, file, 1, scaled.pixels, scaled.stride, NULL);
 
-	stream.put('i'); stream.put('c'); stream.put('n'); stream.put('s');
-	stream.put('-'); stream.put('-'); stream.put('-'); stream.put('-');
+	int icon08size = static_cast<int>(ftell(file) - 8);
+	fputs("ic09----", file);
 
-	stream.put('i'); stream.put('c'); stream.put('0'); stream.put('8');
-	stream.put('-'); stream.put('-'); stream.put('-'); stream.put('-');
-	scale(context, 256, 256);
-	iw_write_file_by_fmt(context, &writedescr, IW_FORMAT_PNG);
+	scaled = scaleKeepAspect(image, 512, 512, true);
+	pngimage.width = scaled.width;
+	pngimage.height = scaled.height;
+	png_image_write_to_stdio(&pngimage, file, 1, scaled.pixels, scaled.stride, NULL);
 
-	int icon08size = static_cast<int>(stream.size() - 8);
-	stream.put('i'); stream.put('c'); stream.put('0'); stream.put('9');
-	stream.put('-'); stream.put('-'); stream.put('-'); stream.put('-');
-	scale(context, 512, 512);
-	iw_write_file_by_fmt(context, &writedescr, IW_FORMAT_PNG);
+	int icon09size = static_cast<int>(ftell(file) - icon08size - 8);
+	fputs("ic10----", file);
 
-	int icon09size = static_cast<int>(stream.size() - icon08size - 8);
-	stream.put('i'); stream.put('c'); stream.put('1'); stream.put('0');
-	stream.put('-'); stream.put('-'); stream.put('-'); stream.put('-');
-	scale(context, 1024, 1024);
-	iw_write_file_by_fmt(context, &writedescr, IW_FORMAT_PNG);
+	scaled = scaleKeepAspect(image, 1024, 1024, true);
+	pngimage.width = scaled.width;
+	pngimage.height = scaled.height;
+	png_image_write_to_stdio(&pngimage, file, 1, scaled.pixels, scaled.stride, NULL);
 
-	int icon10size = static_cast<int>(stream.size() - icon09size - icon08size - 8);
+	int icon10size = static_cast<int>(ftell(file) - icon09size - icon08size - 8);
 
-	std::vector<byte> size = convertIntToByteArray(static_cast<int>(stream.size()));
-	for (int i = 0; i < 4; ++i) stream.set( 4 + i, size[i]);
+	std::vector<byte> size = convertIntToByteArray(static_cast<int>(ftell(file)));
+	fseek(file, 4, SEEK_SET);
+	for (int i = 0; i < 4; ++i) fputc(size[i], file);
 
 	size = convertIntToByteArray(icon08size);
-	for (int i = 0; i < 4; ++i) stream.set(12 + i, size[i]);
+	fseek(file, 12, SEEK_SET);
+	for (int i = 0; i < 4; ++i) fputc(size[i], file);
 
 	size = convertIntToByteArray(icon09size);
-	for (int i = 0; i < 4; ++i) stream.set(icon08size + 8 + 4 + i, size[i]);
+	fseek(file, icon08size + 8 + 4, SEEK_SET);
+	for (int i = 0; i < 4; ++i) fputc(size[i], file);
 
 	size = convertIntToByteArray(icon10size);
-	for (int i = 0; i < 4; ++i) stream.set(icon08size + icon09size + 8 + 4 + i, size[i]);
+	fseek(file, icon08size + icon09size + 8 + 4, SEEK_SET);
+	for (int i = 0; i < 4; ++i) fputc(size[i], file);
 
-	stream.save(filename);
+	fclose(file);
 }
