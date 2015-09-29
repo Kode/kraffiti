@@ -2,6 +2,7 @@ const solution = new Solution("kraffiti");
 const project = new Project("kraffiti");
 
 const pvrtc = true;
+const astc = true;
 
 solution.setCmd();
 
@@ -41,20 +42,21 @@ project.addExclude("libjpeg/djpeg.c");
 project.addExclude("libjpeg/jpegtran.c");
 project.addExclude("libjpeg/example.c");
 
-/*
-project.addFile('Libraries/astc-encoder/Source/**');
-project.addExclude('Libraries/astc-encoder/Source/exr_to_htga.cpp');
-project.addExclude('Libraries/astc-encoder/Source/imgdiff.cpp');
-project.addExclude('Libraries/astc-encoder/Source/astc_averages_and_directions_eigenvectors.cpp');
-if (platform === Platform.Windows) {
-	project.addIncludeDir('Libraries/astc-encoder/Source/win32-2010/astcenc');
-}
-*/
-
 project.addIncludeDir("Sources");
 project.addIncludeDir("zlib");
 project.addIncludeDir("libpng");
 project.addIncludeDir("libjpeg");
+
+if (astc) {
+	project.addDefine('LIB_ASTC');
+	project.addFile('Libraries/astc-encoder/Source/**');
+	project.addExclude('Libraries/astc-encoder/Source/exr_to_htga.cpp');
+	project.addExclude('Libraries/astc-encoder/Source/imgdiff.cpp');
+	project.addExclude('Libraries/astc-encoder/Source/astc_averages_and_directions_eigenvectors.cpp');
+	if (platform === Platform.Windows) {
+		project.addIncludeDir('Libraries/astc-encoder/Source/win32-2010/astcenc');
+	}
+}
 
 if (pvrtc) {
 	project.addDefine('LIB_PVRTC');
