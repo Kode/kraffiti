@@ -4,5 +4,6 @@ compiler:
   - clang
 before_script:
   - git clone https://github.com/ktxsoftware/koremake.git
-  - git clone https://github.com/ktxsoftware/iojs_bin.git
-script: iojs_bin/iojs-linux64 koremake/koremake.js --compile
+  - git clone https://github.com/ktxsoftware/nodejs_bin.git
+  - nodejs_bin/copysysbin.sh
+script: nodejs_bin/node koremake/koremake.js --compile
