@@ -66,10 +66,14 @@ if (pvrtc) {
 		project.addLibFor('x64', 'Libraries/PVRTexTool/Windows_x86_64/Static/PVRTexLib');
 	}
 	else if (platform === Platform.OSX) {
-		project.addLibFor('Libraries/PVRTexTool/OSX_x86/Static/PVRTexLib');
+		project.addLib('Libraries/PVRTexTool/OSX_x86/Static/PVRTexLib');
+	}
+	else if (platform === Platform.Linux) {
+		project.addLib('Libraries/PVRTexTool/Linux_x86_32/Static/PVRTexLib');
 	}
 }
 
 solution.addProject(project);
 
 return solution;
+
