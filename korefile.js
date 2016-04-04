@@ -1,8 +1,8 @@
 const solution = new Solution("kraffiti");
 const project = new Project("kraffiti");
 
-const pvrtc = true;
-const astc = true;
+const pvrtc = false;
+const astc = false;
 
 solution.setCmd();
 
