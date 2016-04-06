@@ -2,6 +2,7 @@
 #include "astc.h"
 #include "pvrtc.h"
 #include "Preprocessor.h"
+#define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 #include <memory.h>
 #include <stdio.h>
