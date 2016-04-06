@@ -2,6 +2,7 @@
 #include "astc.h"
 #include "pvrtc.h"
 #include "Preprocessor.h"
+#include "stb_image.h"
 #include <memory.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -161,6 +162,12 @@ void writePNG(Image image, const char* filename) {
 	}
 }
 
+Image readHDR(const char* filename) {
+    int width, height, n;
+    unsigned char *data = stbi_load(filename, &width, &height, &n, 0);
+    return Image(data, width, height);
+}
+
 int main(int argc, char** argv) {
 	std::string from = "ball.png";
 	std::string to = "output.png";
@@ -227,9 +234,17 @@ int main(int argc, char** argv) {
 			// Unknown parameter
 		}
 	}
+    
+    if (donothing) {
+        int n;
+        stbi_info(from.c_str(), &width, &height, &n);
+        printf("#%ix%i", width, height);
+        return 0;
+    }
 
 	Image image(NULL, 0, 0);
 	if (endsWith(from, ".png")) image = readPNG(from.c_str());
+    else if (endsWith(from, ".hdr")) image = readHDR(from.c_str());
 	else image = readJPEG(from.c_str());
 
 	if (scale != 1) {
@@ -240,10 +255,6 @@ int main(int argc, char** argv) {
 	if (height < 0) height = image.height;
 
 	printf("#%ix%i", width, height);
-
-	if (donothing) {
-		return 0;
-	}
 
 	if (dobackground) {
 		for (int y = 0; y < image.height; ++y) for (int x = 0; x < image.width; ++x) {
