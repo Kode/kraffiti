@@ -118,9 +118,9 @@ void writeJPEG(Image image, const char* filename) {
 	byte* row = (byte*)malloc(image.width * 3);
 	while (cinfo.next_scanline < cinfo.image_height) {
 		for (int x = 0; x < image.width; ++x) {
-			row[x * 3 + 0] = image.pixels[cinfo.next_scanline * image.stride + x * 4 + 0];
-			row[x * 3 + 1] = image.pixels[cinfo.next_scanline * image.stride + x * 4 + 1];
-			row[x * 3 + 2] = image.pixels[cinfo.next_scanline * image.stride + x * 4 + 2];
+			row[x * 3 + 0] = image.pixels[cinfo.next_scanline * image.stride + x * image.pixelStride + 0];
+			row[x * 3 + 1] = image.pixels[cinfo.next_scanline * image.stride + x * image.pixelStride + 1];
+			row[x * 3 + 2] = image.pixels[cinfo.next_scanline * image.stride + x * image.pixelStride + 2];
 		}
 		row_pointer[0] = row;
 		jpeg_write_scanlines(&cinfo, row_pointer, 1);
@@ -164,9 +164,9 @@ void writePNG(Image image, const char* filename) {
 }
 
 Image readHDR(const char* filename) {
-    int width, height, n;
-    unsigned char *data = stbi_load(filename, &width, &height, &n, 0);
-    return Image(data, width, height);
+	int width, height, n;
+	unsigned char *data = stbi_load(filename, &width, &height, &n, 0);
+	return Image(data, width, height, 3);
 }
 
 int main(int argc, char** argv) {
@@ -235,17 +235,17 @@ int main(int argc, char** argv) {
 			// Unknown parameter
 		}
 	}
-    
-    if (donothing) {
-        int n;
-        stbi_info(from.c_str(), &width, &height, &n);
-        printf("#%ix%i", width, height);
-        return 0;
-    }
+
+	if (donothing) {
+		int n;
+		stbi_info(from.c_str(), &width, &height, &n);
+		printf("#%ix%i", width, height);
+		return 0;
+	}
 
 	Image image(NULL, 0, 0);
 	if (endsWith(from, ".png")) image = readPNG(from.c_str());
-    else if (endsWith(from, ".hdr")) image = readHDR(from.c_str());
+	else if (endsWith(from, ".hdr")) image = readHDR(from.c_str());
 	else image = readJPEG(from.c_str());
 
 	if (scale != 1) {
