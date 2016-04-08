@@ -4,6 +4,8 @@
 #include "Preprocessor.h"
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "stb_image_write.h"
 #include <memory.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -118,9 +120,9 @@ void writeJPEG(Image image, const char* filename) {
 	byte* row = (byte*)malloc(image.width * 3);
 	while (cinfo.next_scanline < cinfo.image_height) {
 		for (int x = 0; x < image.width; ++x) {
-			row[x * 3 + 0] = image.pixels[cinfo.next_scanline * image.stride + x * image.pixelStride + 0];
-			row[x * 3 + 1] = image.pixels[cinfo.next_scanline * image.stride + x * image.pixelStride + 1];
-			row[x * 3 + 2] = image.pixels[cinfo.next_scanline * image.stride + x * image.pixelStride + 2];
+			row[x * 3 + 0] = image.pixels[cinfo.next_scanline * image.stride + x * image.components + 0];
+			row[x * 3 + 1] = image.pixels[cinfo.next_scanline * image.stride + x * image.components + 1];
+			row[x * 3 + 2] = image.pixels[cinfo.next_scanline * image.stride + x * image.components + 2];
 		}
 		row_pointer[0] = row;
 		jpeg_write_scanlines(&cinfo, row_pointer, 1);
@@ -163,10 +165,40 @@ void writePNG(Image image, const char* filename) {
 	}
 }
 
-Image readHDR(const char* filename) {
+Image readHDR(const char* filename, bool storeHdr) {
 	int width, height, n;
-	unsigned char *data = stbi_load(filename, &width, &height, &n, 0);
-	return Image(data, width, height, 3);
+	if (storeHdr) {
+		float *data = stbi_loadf(filename, &width, &height, &n, 0);
+		Image image = Image(NULL, width, height, n);
+		image.isHdr = true;
+		image.hdrPixels = data;
+		return image;
+	}
+	else {
+		unsigned char *data = stbi_load(filename, &width, &height, &n, 0);
+		return Image(data, width, height, n);
+	}
+}
+
+void writeHDR(Image image, const char* filename) {
+	float *pixels;
+	if (!image.isHdr) {
+		pixels = (float*)malloc(image.width * image.height * image.components * sizeof(float));
+		for (int i = 0; i < image.width * image.width * image.components; ++i) {
+			pixels[i] = float(image.pixels[i]) / 255;
+		}
+	}
+	else {
+		pixels = image.hdrPixels;
+	}
+	
+	if (!stbi_write_hdr(filename, image.width, image.height, image.components, pixels)) {
+		// error
+	}
+	
+	if (!image.isHdr) {
+		free(pixels);
+	}
 }
 
 int main(int argc, char** argv) {
@@ -184,7 +216,7 @@ int main(int argc, char** argv) {
 	unsigned transparentColor = 0;
 	int width = -1;
 	int height = -1;
-	int scale = 1;
+	float scale = 1;
 
 	for (int i = 1; i < argc; ++i) {
 		std::string arg(argv[i]);
@@ -202,7 +234,7 @@ int main(int argc, char** argv) {
 		}
 		else if (startsWith(arg, "scale=")) {
 			std::string substring = arg.substr(6);
-			scale = atoi(substring.c_str());
+			scale = atof(substring.c_str());
 		}
 		else if (startsWith(arg, "transparent=")) {
 			dotransparency = true;
@@ -245,16 +277,20 @@ int main(int argc, char** argv) {
 
 	Image image(NULL, 0, 0);
 	if (endsWith(from, ".png")) image = readPNG(from.c_str());
-	else if (endsWith(from, ".hdr")) image = readHDR(from.c_str());
+	else if (endsWith(from, ".hdr")) image = readHDR(from.c_str(), format == "hdr");
 	else image = readJPEG(from.c_str());
 
 	if (scale != 1) {
 		width = image.width * scale;
 		height = image.height * scale;
+		if (width <= 0) width = 1;
+		if (height <= 0) height = 1;
 	}
+	
 	if (width < 0) width = image.width;
 	if (height < 0) height = image.height;
 
+	
 	printf("#%ix%i", width, height);
 
 	if (dobackground) {
@@ -295,6 +331,9 @@ int main(int argc, char** argv) {
 	}
 	else if (format == "jpg" || format == "jpeg") {
 		writeJPEG(image, to.c_str());
+	}
+	else if (format == "hdr") {
+		writeHDR(image, to.c_str());
 	}
 	else if (format == "ico") {
 		windowsIcon(image, to.c_str());

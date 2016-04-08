@@ -53,15 +53,28 @@ Image prealpha(Image image) {
 }
 
 Image scale(Image image, int width, int height, bool pointsample) {
-	Image result((byte*)malloc(width * height * 4), width, height);
+	if (!image.isHdr) {
+		Image result((byte*)malloc(width * height * image.components), width, height, image.components);
+		
+		stbir_resize_uint8_generic(image.pixels, image.width, image.height, image.stride,
+								   result.pixels, result.width, result.height, result.stride,
+								   image.components, 3, 0,
+								   STBIR_EDGE_CLAMP, pointsample ? STBIR_FILTER_BOX : STBIR_FILTER_CUBICBSPLINE, STBIR_COLORSPACE_SRGB,
+								   0);
+		
+		return result;
+	}
+	else {
+		Image result(NULL, width, height, image.components);
+		result.isHdr = true;
+		result.hdrPixels = (float*)malloc(width * height * image.components * sizeof(float));
 
-	stbir_resize_uint8_generic(image.pixels, image.width, image.height, image.stride,
-		result.pixels, result.width, result.height, result.stride,
-		4, 3, 0,
-		STBIR_EDGE_CLAMP, pointsample ? STBIR_FILTER_BOX : STBIR_FILTER_CUBICBSPLINE, STBIR_COLORSPACE_SRGB,
-		0);
+		stbir_resize_float(image.hdrPixels, image.width, image.height, image.width * image.components * 4,
+						   result.hdrPixels, result.width, result.height, result.width * image.components * 4,
+						   image.components);
 
-	return result;
+		return result;
+	}
 }
 
 Image scaleKeepAspect(Image image, int width, int height, bool pointsample) {
