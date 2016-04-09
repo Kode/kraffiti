@@ -3,13 +3,15 @@
 typedef unsigned char byte;
 
 struct Image {
-	Image(byte* pixels, int width, int height, int pixelStride = 4) : pixels(pixels), width(width), height(height), pixelStride(pixelStride), stride(width * pixelStride) {
+	Image(byte* pixels, int width, int height, int components = 4) : pixels(pixels), width(width), height(height), components(components), stride(width * components), isHdr(false) {
 
 	}
 
 	byte* pixels;
 	int width;
 	int height;
-	int pixelStride;
+	int components;
 	int stride;
+	bool isHdr;
+	float* hdrPixels;
 };
