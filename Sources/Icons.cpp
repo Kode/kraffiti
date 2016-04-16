@@ -67,7 +67,7 @@ namespace {
 void writeIcoHeader(FILE* file) {
 	fputc(0, file); fputc(0, file); //Reserved. Must always be 0.
 	write(file, convertShortToByteArrayLE((short)1)); //Specifies image type: 1 for icon (.ICO) image, 2 for cursor (.CUR) image. Other values are invalid.
-	write(file, convertShortToByteArrayLE((short)4)); //Specifies number of images in the file.
+	write(file, convertShortToByteArrayLE((short)8)); //Specifies number of images in the file.
 }
 
 void writeIconDirEntry(FILE* file, int width, int height, int offset) {
@@ -119,27 +119,39 @@ int getBMPSize(int width, int height) {
 }
 
 void windowsIcon(Image image, const char* filename) {
-	//16x16
-	//32x32
-	//48x48
-	//256x256
-
 	FILE* file = fopen(filename, "wb");
 
 	writeIcoHeader(file);
 
-	writeIconDirEntry(file, 16, 16, iconHeaderSize + iconDirEntrySize * 4);
-	writeIconDirEntry(file, 32, 32, iconHeaderSize + iconDirEntrySize * 4 + getBMPSize(16, 16));
-	writeIconDirEntry(file, 48, 48, iconHeaderSize + iconDirEntrySize * 4 + getBMPSize(16, 16) + getBMPSize(32, 32));
-	writeIconDirEntry(file, 256, 256, iconHeaderSize + iconDirEntrySize * 4 + getBMPSize(16, 16) + getBMPSize(32, 32) + getBMPSize(48, 48));
+	int iconOffset = iconHeaderSize + iconDirEntrySize * 8;
+	writeIconDirEntry(file, 16, 16, iconOffset); iconOffset += getBMPSize(16, 16);
+	writeIconDirEntry(file, 20, 20, iconOffset); iconOffset += getBMPSize(20, 20);
+	writeIconDirEntry(file, 24, 24, iconOffset); iconOffset += getBMPSize(24, 24);
+	writeIconDirEntry(file, 32, 32, iconOffset); iconOffset += getBMPSize(32, 32);
+	writeIconDirEntry(file, 40, 40, iconOffset); iconOffset += getBMPSize(40, 40);
+	writeIconDirEntry(file, 48, 48, iconOffset); iconOffset += getBMPSize(48, 48);
+	writeIconDirEntry(file, 64, 64, iconOffset); iconOffset += getBMPSize(64, 64);
+	writeIconDirEntry(file, 256, 256, iconOffset);
 
 	Image scaled = scaleKeepAspect(image, 16, 16, true);
+	writeBMP(file, scaled);
+
+	scaled = scaleKeepAspect(image, 20, 20, true);
+	writeBMP(file, scaled);
+
+	scaled = scaleKeepAspect(image, 24, 24, true);
 	writeBMP(file, scaled);
 
 	scaled = scaleKeepAspect(image, 32, 32, true);
 	writeBMP(file, scaled);
 
+	scaled = scaleKeepAspect(image, 40, 40, true);
+	writeBMP(file, scaled);
+
 	scaled = scaleKeepAspect(image, 48, 48, true);
+	writeBMP(file, scaled);
+
+	scaled = scaleKeepAspect(image, 64, 64, true);
 	writeBMP(file, scaled);
 
 	scaled = scaleKeepAspect(image, 256, 256, true);
@@ -152,8 +164,8 @@ void windowsIcon(Image image, const char* filename) {
 	pngimage.flags = 0;
 	png_image_write_to_stdio(&pngimage, file, 0, scaled.pixels, scaled.stride, NULL);
 
-	std::vector<byte> pngSize = convertIntToByteArrayLE(static_cast<int>(ftell(file)) - (iconHeaderSize + iconDirEntrySize * 4 + getBMPSize(16, 16) + getBMPSize(32, 32) + getBMPSize(48, 48)));
-	fseek(file, iconHeaderSize + iconDirEntrySize * 3 + 8, SEEK_SET);
+	std::vector<byte> pngSize = convertIntToByteArrayLE(static_cast<int>(ftell(file)) - iconOffset);
+	fseek(file, iconHeaderSize + iconDirEntrySize * 7 + 8, SEEK_SET);
 	for (int i = 0; i < 4; ++i) fputc(pngSize[i], file);
 
 	fclose(file);
