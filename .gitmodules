@@ -2,3 +2,7 @@
 	path = Libraries/astc-encoder
 	url = ../astc-encoder.git
 	branch = master
+[submodule "Libraries/snappy"]
+	path = Libraries/snappy
+	url = ../snappy
+	branch = master

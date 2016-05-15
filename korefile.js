@@ -42,10 +42,20 @@ project.addExclude("libjpeg/djpeg.c");
 project.addExclude("libjpeg/jpegtran.c");
 project.addExclude("libjpeg/example.c");
 
+project.addFile('Libraries/snappy/snappy.h');
+project.addFile('Libraries/snappy/snappy-sinksource.h');
+project.addFile('Libraries/snappy/snappy-stubs-public.h');
+project.addFile('Libraries/snappy/snappy-c.h');
+project.addFile('Libraries/snappy/snappy.cc');
+project.addFile('Libraries/snappy/snappy-sinksource.cc');
+project.addFile('Libraries/snappy/snappy-stubs-internal.cc');
+project.addFile('Libraries/snappy/snappy-c.cc');
+
 project.addIncludeDir("Sources");
 project.addIncludeDir("zlib");
 project.addIncludeDir("libpng");
 project.addIncludeDir("libjpeg");
+project.addIncludeDir('Libraries/snappy');
 
 if (astc) {
 	project.addDefine('LIB_ASTC');
