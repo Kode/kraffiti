@@ -16,8 +16,8 @@ Datatype loadDatatype(const char* name) {
 
 Datatype loadDatatype(const char* name) {
 	Datatype datatype;
-	datatype.formats = nullptr;
-	datatype.encode = nullptr;
+	datatype.formats = NULL;
+	datatype.encode = NULL;
 	return datatype;
 }
 

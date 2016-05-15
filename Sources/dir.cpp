@@ -33,7 +33,7 @@ void closeDir(const Directory& dir) {
 
 Directory openDir(const char* dirname) {
 	Directory dir;
-	dir.handle = nullptr;
+	dir.handle = NULL;
 	return dir;
 }
 
