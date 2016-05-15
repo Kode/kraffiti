@@ -361,7 +361,7 @@ int main(int argc, char** argv) {
 		}
 		closeDir(dir);
 		if (!file.valid) {
-			printf("Format %s not supported.", format);
+			printf("Format %s not supported.", format.c_str());
 		}
 	}
 }
