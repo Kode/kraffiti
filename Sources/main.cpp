@@ -13,6 +13,7 @@
 #include <stdlib.h>
 #include <string>
 #include <vector>
+#include <snappy.h>
 #include <png.h>
 extern "C" {
 	#include <jpeglib.h>
@@ -363,6 +364,11 @@ int main(int argc, char** argv) {
 	else if (format == "pvrtc") {
 		pvrtc(image, to.c_str());
 	}
+	else if (format == "snappy") {
+		char* compressed = new char[snappy::MaxCompressedLength(image.stride * image.height)];
+		size_t compressedSize;
+		snappy::RawCompress((char*)image.pixels, image.stride * image.height, compressed, &compressedSize);
+	}
 	else {
 		Directory dir = openDir("Datatypes");
 		File file = readNextFile(dir);
@@ -375,6 +381,9 @@ int main(int argc, char** argv) {
 						int width, height, size;
 						void* data;
 						datatype.encode(image.width, image.height, image.stride, 0, image.pixels, &width, &height, &size, &data);
+						char* compressed = new char[snappy::MaxCompressedLength(size)];
+						size_t compressedSize;
+						snappy::RawCompress((char*)data, size, compressed, &compressedSize);
 						break;
 					}
 				}
