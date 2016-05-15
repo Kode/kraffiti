@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string>
+#include <vector>
 #include <png.h>
 extern "C" {
 	#include <jpeglib.h>
@@ -23,6 +24,19 @@ bool startsWith(std::string a, std::string b) {
 
 bool endsWith(std::string a, std::string b) {
 	return a.substr(a.size() - b.size(), b.size()) == b;
+}
+
+std::vector<std::string> split(std::string str, char splitter) {
+	std::vector<std::string> splitted;
+	size_t last = 0;
+	for (size_t i = 0; i < str.size(); ++i) {
+		if (str[i] == splitter) {
+			splitted.push_back(str.substr(last, i - last - 1));
+			last = i + 1;
+		}
+	}
+	splitted.push_back(str.substr(last));
+	return splitted;
 }
 
 struct my_error_mgr {
@@ -236,7 +250,7 @@ int main(int argc, char** argv) {
 		}
 		else if (startsWith(arg, "scale=")) {
 			std::string substring = arg.substr(6);
-			scale = atof(substring.c_str());
+			scale = (float)atof(substring.c_str());
 		}
 		else if (startsWith(arg, "transparent=")) {
 			dotransparency = true;
@@ -283,8 +297,8 @@ int main(int argc, char** argv) {
 	else image = readJPEG(from.c_str());
 
 	if (scale != 1) {
-		width = image.width * scale;
-		height = image.height * scale;
+		width = (int)(image.width * scale);
+		height = (int)(image.height * scale);
 		if (width <= 0) width = 1;
 		if (height <= 0) height = 1;
 	}
@@ -355,7 +369,15 @@ int main(int argc, char** argv) {
 		while (file.valid) {
 			if (startsWith(file.name, "krafix-")) {
 				Datatype datatype = loadDatatype(file.name);
-				datatype.formats();
+				std::vector<std::string> formats = split(datatype.formats(), '|');
+				for (size_t i = 0; i < formats.size(); ++i) {
+					if (format == formats[i]) {
+						int width, height, size;
+						void* data;
+						datatype.encode(image.width, image.height, image.stride, 0, image.pixels, &width, &height, &size, &data);
+						break;
+					}
+				}
 			}
 			file = readNextFile(dir);
 		}
