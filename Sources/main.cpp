@@ -1,6 +1,8 @@
 #include "Icons.h"
 #include "astc.h"
 #include "pvrtc.h"
+#include "dir.h"
+#include "datatype.h"
 #include "Preprocessor.h"
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
@@ -348,6 +350,18 @@ int main(int argc, char** argv) {
 		pvrtc(image, to.c_str());
 	}
 	else {
-		// Unknown format
+		Directory dir = openDir("Datatypes");
+		File file = readNextFile(dir);
+		while (file.valid) {
+			if (startsWith(file.name, "krafix-")) {
+				Datatype datatype = loadDatatype(file.name);
+				datatype.formats();
+			}
+			file = readNextFile(dir);
+		}
+		closeDir(dir);
+		if (!file.valid) {
+			printf("Format %s not supported.", format);
+		}
 	}
 }
