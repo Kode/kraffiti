@@ -1,5 +1,6 @@
 #include "dir.h"
 #include <stdio.h>
+#include <stddef.h>
 
 #ifdef SYS_WINDOWS
 

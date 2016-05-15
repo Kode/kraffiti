@@ -1,4 +1,5 @@
 #include "datatype.h"
+#include <stddef.h>
 
 #ifdef SYS_WINDOWS
 
