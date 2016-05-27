@@ -218,6 +218,29 @@ void writeHDR(Image image, const char* filename) {
 	}
 }
 
+void writeK(int width, int height, const char* format, char* data, int size, const char* filename) {
+	FILE* file = fopen(filename, "wb");
+
+	fputc((byte)width, file);
+	fputc((byte)(width >> 8), file);
+	fputc((byte)(width >> 16), file);
+	fputc((byte)(width >> 24), file);
+
+	fputc((byte)height, file);
+	fputc((byte)(height >> 8), file);
+	fputc((byte)(height >> 16), file);
+	fputc((byte)(height >> 24), file);
+	
+	fputc(format[0], file);
+	fputc(format[1], file);
+	fputc(format[2], file);
+	fputc(format[3], file);
+
+	fwrite(data, 1, size, file);
+
+	fclose(file);
+}
+
 int main(int argc, char** argv) {
 	std::string from = "ball.png";
 	std::string to = "output.png";
@@ -358,16 +381,17 @@ int main(int argc, char** argv) {
 	else if (format == "icns") {
 		macIcon(image, to.c_str());
 	}
-	else if (format == "astc") {
+	/*else if (format == "astc") {
 		astc(image, to.c_str());
 	}
 	else if (format == "pvrtc") {
 		pvrtc(image, to.c_str());
-	}
+	}*/
 	else if (format == "snappy") {
 		char* compressed = new char[snappy::MaxCompressedLength(image.stride * image.height)];
 		size_t compressedSize;
 		snappy::RawCompress((char*)image.pixels, image.stride * image.height, compressed, &compressedSize);
+		writeK(image.width, image.height, "SNAP", compressed, compressedSize, to.c_str());
 	}
 	else {
 		Directory dir = openDir("Datatypes");
@@ -384,6 +408,11 @@ int main(int argc, char** argv) {
 						char* compressed = new char[snappy::MaxCompressedLength(size)];
 						size_t compressedSize;
 						snappy::RawCompress((char*)data, size, compressed, &compressedSize);
+						std::string fourcc = format;
+						while (fourcc.size() < 4) {
+							fourcc += ' ';
+						}
+						writeK(image.width, image.height, fourcc.c_str(), compressed, compressedSize, to.c_str());
 						break;
 					}
 				}
