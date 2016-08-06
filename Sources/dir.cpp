@@ -7,9 +7,12 @@
 #include <Windows.h>
 
 Directory openDir(const char* dirname) {
+	char pattern[MAX_PATH + 1];
+	strcpy(pattern, dirname);
+	strcat(pattern, "\\*");
 	WIN32_FIND_DATAA data;
 	Directory dir;
-	dir.handle = FindFirstFileA(dirname, &data);
+	dir.handle = FindFirstFileA(pattern, &data);
 	if (dir.handle == INVALID_HANDLE_VALUE) {
 		printf("FindFirstFile failed (%d)\n", GetLastError());
 		exit(1);

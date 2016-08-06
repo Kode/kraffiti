@@ -32,7 +32,7 @@ std::vector<std::string> split(std::string str, char splitter) {
 	size_t last = 0;
 	for (size_t i = 0; i < str.size(); ++i) {
 		if (str[i] == splitter) {
-			splitted.push_back(str.substr(last, i - last - 1));
+			splitted.push_back(str.substr(last, i - last));
 			last = i + 1;
 		}
 	}
@@ -158,7 +158,7 @@ Image readPNG(const char* filename) {
 
 	if (png_image_begin_read_from_file(&image, filename)) {
 		image.format = PNG_FORMAT_RGBA;
-		png_bytep buffer = (png_bytep)malloc(PNG_IMAGE_SIZE(image) * 10);
+		png_bytep buffer = (png_bytep)malloc(PNG_IMAGE_SIZE(image));
 		if (buffer != NULL && png_image_finish_read(&image, NULL, buffer, 0, NULL)) {
 			return Image(buffer, image.width, image.height);
 		}
@@ -311,7 +311,7 @@ int main(int argc, char** argv) {
 	if (donothing) {
 		int n;
 		stbi_info(from.c_str(), &width, &height, &n);
-		printf("#%ix%i", width, height);
+		printf("#%ix%i\n", width, height);
 		return 0;
 	}
 
@@ -331,7 +331,7 @@ int main(int argc, char** argv) {
 	if (height < 0) height = image.height;
 
 	
-	printf("#%ix%i", width, height);
+	printf("#%ix%i\n", width, height);
 
 	if (dobackground) {
 		for (int y = 0; y < image.height; ++y) for (int x = 0; x < image.width; ++x) {
@@ -397,14 +397,14 @@ int main(int argc, char** argv) {
 		Directory dir = openDir("Datatypes");
 		File file = readNextFile(dir);
 		while (file.valid) {
-			if (startsWith(file.name, "krafix-")) {
+			if (startsWith(file.name, "kraffiti-")) {
 				Datatype datatype = loadDatatype(file.name);
 				std::vector<std::string> formats = split(datatype.formats(), '|');
 				for (size_t i = 0; i < formats.size(); ++i) {
 					if (format == formats[i]) {
 						int width, height, size;
 						void* data;
-						datatype.encode(image.width, image.height, image.stride, 0, image.pixels, &width, &height, &size, &data);
+						datatype.encode(image.width, image.height, image.stride, format.c_str(), image.pixels, &width, &height, &size, &data);
 						char* compressed = new char[snappy::MaxCompressedLength(size)];
 						size_t compressedSize;
 						snappy::RawCompress((char*)data, size, compressed, &compressedSize);
@@ -413,15 +413,14 @@ int main(int argc, char** argv) {
 							fourcc += ' ';
 						}
 						writeK(image.width, image.height, fourcc.c_str(), compressed, compressedSize, to.c_str());
-						break;
+						goto end;
 					}
 				}
 			}
 			file = readNextFile(dir);
 		}
 		closeDir(dir);
-		if (!file.valid) {
-			printf("Format %s not supported.", format.c_str());
-		}
+		printf("Format %s not supported.", format.c_str());
+	end:;
 	}
 }

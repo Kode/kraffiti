@@ -6,7 +6,10 @@
 #include <Windows.h>
 
 Datatype loadDatatype(const char* name) {
-	HMODULE lib = LoadLibraryA(name);
+	char path[MAX_PATH + 1];
+	strcpy(path, "Datatypes\\");
+	strcat(path, name);
+	HMODULE lib = LoadLibraryA(path);
 	Datatype datatype;
 	datatype.formats = (FormatsType)GetProcAddress(lib, "formats");
 	datatype.encode = (EncodeType)GetProcAddress(lib, "encode");
