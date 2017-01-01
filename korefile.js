@@ -3,7 +3,7 @@ let project = new Project('kraffiti', __dirname);
 const pvrtc = false;
 const astc = false;
 
-solution.setCmd();
+project.setCmd();
 
 project.addExclude('.git/**');
 project.addExclude('build/**');
