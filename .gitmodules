@@ -1,8 +1,8 @@
 [submodule "Libraries/astc-encoder"]
 	path = Libraries/astc-encoder
-	url = ../astc-encoder.git
+	url = https://github.com/Kode/astc-encoder.git
 	branch = master
 [submodule "Libraries/snappy"]
 	path = Libraries/snappy
-	url = ../snappy
+	url = https://github.com/Kode/snappy
 	branch = master
