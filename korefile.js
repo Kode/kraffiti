@@ -1,5 +1,4 @@
-const solution = new Solution("kraffiti");
-const project = new Project("kraffiti");
+let project = new Project('kraffiti', __dirname);
 
 const pvrtc = false;
 const astc = false;
@@ -83,7 +82,4 @@ if (pvrtc) {
 	}
 }
 
-solution.addProject(project);
-
-return solution;
-
+resolve(project);
