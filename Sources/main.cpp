@@ -14,6 +14,7 @@
 #include <string>
 #include <vector>
 #include <snappy.h>
+#include "../Libraries/lz4/lib/lz4.h"
 #include <png.h>
 extern "C" {
 	#include <jpeglib.h>
@@ -392,6 +393,12 @@ int main(int argc, char** argv) {
 		size_t compressedSize;
 		snappy::RawCompress((char*)image.pixels, image.stride * image.height, compressed, &compressedSize);
 		writeK(image.width, image.height, "SNAP", compressed, compressedSize, to.c_str());
+	}
+	else if (format == "lz4") {
+		int max = LZ4_compressBound(image.stride * image.height);
+		char* compressed = new char[max];
+		int compressedSize = LZ4_compress_default((char*)image.pixels, compressed, image.stride * image.height, max);
+		writeK(image.width, image.height, "LZ4 ", compressed, compressedSize, to.c_str());
 	}
 	else {
 		Directory dir = openDir("Datatypes");

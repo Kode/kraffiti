@@ -50,6 +50,8 @@ project.addFile('Libraries/snappy/snappy-sinksource.cc');
 project.addFile('Libraries/snappy/snappy-stubs-internal.cc');
 project.addFile('Libraries/snappy/snappy-c.cc');
 
+project.addFile('Libraries/lz4/lib/**');
+
 project.addIncludeDir("Sources");
 project.addIncludeDir("zlib");
 project.addIncludeDir("libpng");
