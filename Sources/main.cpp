@@ -243,7 +243,7 @@ void writeK(int width, int height, const char* format, char* data, int size, con
 }
 
 int main(int argc, char** argv) {
-	std::string from = "ball.png";
+	std::string from = "icon.png";
 	std::string to = "output.png";
 	std::string format = "png";
 	bool pointSampling = false;
