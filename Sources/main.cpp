@@ -183,11 +183,11 @@ void writePNG(Image image, const char* filename) {
 	}
 }
 
-Image readHDR(const char* filename, bool storeHdr) {
+Image readHDR(const char* filename, bool storeHdr, int storeComponents) {
 	int width, height, n;
 	if (storeHdr) {
-		float *data = stbi_loadf(filename, &width, &height, &n, 4);
-		Image image = Image(NULL, width, height, n);
+		float *data = stbi_loadf(filename, &width, &height, &n, storeComponents);
+		Image image = Image(NULL, width, height, storeComponents);
 		image.isHdr = true;
 		image.hdrPixels = data;
 		return image;
@@ -318,7 +318,7 @@ int main(int argc, char** argv) {
 
 	Image image(NULL, 0, 0);
 	if (endsWith(from, ".png")) image = readPNG(from.c_str());
-	else if (endsWith(from, ".hdr")) image = readHDR(from.c_str(), format == "hdr" || format == "lz4");
+	else if (endsWith(from, ".hdr")) image = readHDR(from.c_str(), format == "hdr" || format == "lz4", format == "lz4" ? 4 : 3);
 	else image = readJPEG(from.c_str());
 
 	if (scale != 1) {
