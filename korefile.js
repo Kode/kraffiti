@@ -1,8 +1,5 @@
 let project = new Project('kraffiti', __dirname);
 
-const pvrtc = false;
-const astc = false;
-
 project.setCmd();
 
 project.addExclude('.git/**');
@@ -12,7 +9,6 @@ project.addDefine('HAVE_CONFIG_H');
 project.addDefine("PNG_NO_CONFIG_H");
 
 project.addFile('Sources/**');
-project.addFile('Libraries/PVRTexTool/Include/**');
 
 project.addFile("zlib/*.h");
 project.addFile("zlib/*.c");
@@ -41,47 +37,11 @@ project.addExclude("libjpeg/djpeg.c");
 project.addExclude("libjpeg/jpegtran.c");
 project.addExclude("libjpeg/example.c");
 
-project.addFile('Libraries/snappy/snappy.h');
-project.addFile('Libraries/snappy/snappy-sinksource.h');
-project.addFile('Libraries/snappy/snappy-stubs-public.h');
-project.addFile('Libraries/snappy/snappy-c.h');
-project.addFile('Libraries/snappy/snappy.cc');
-project.addFile('Libraries/snappy/snappy-sinksource.cc');
-project.addFile('Libraries/snappy/snappy-stubs-internal.cc');
-project.addFile('Libraries/snappy/snappy-c.cc');
-
 project.addFile('Libraries/lz4/lib/**');
 
 project.addIncludeDir("Sources");
 project.addIncludeDir("zlib");
 project.addIncludeDir("libpng");
 project.addIncludeDir("libjpeg");
-project.addIncludeDir('Libraries/snappy');
-
-if (astc) {
-	project.addDefine('LIB_ASTC');
-	project.addFile('Libraries/astc-encoder/Source/**');
-	project.addExclude('Libraries/astc-encoder/Source/exr_to_htga.cpp');
-	project.addExclude('Libraries/astc-encoder/Source/imgdiff.cpp');
-	project.addExclude('Libraries/astc-encoder/Source/astc_averages_and_directions_eigenvectors.cpp');
-	if (platform === Platform.Windows) {
-		project.addIncludeDir('Libraries/astc-encoder/Source/win32-2010/astcenc');
-	}
-}
-
-if (pvrtc) {
-	project.addDefine('LIB_PVRTC');
-	project.addIncludeDir('Libraries/PVRTexTool/Include');
-	if (platform === Platform.Windows) {
-		project.addLibFor('Win32', 'Libraries/PVRTexTool/Windows_x86_32/Static/PVRTexLib');
-		project.addLibFor('x64', 'Libraries/PVRTexTool/Windows_x86_64/Static/PVRTexLib');
-	}
-	else if (platform === Platform.OSX) {
-		project.addLib('Libraries/PVRTexTool/OSX_x86/Static/PVRTexLib.a');
-	}
-	else if (platform === Platform.Linux) {
-		project.addLib('Libraries/PVRTexTool/Linux_x86_32/Static/PVRTexLib');
-	}
-}
 
 resolve(project);

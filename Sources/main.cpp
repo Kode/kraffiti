@@ -1,6 +1,4 @@
 #include "Icons.h"
-#include "astc.h"
-#include "pvrtc.h"
 #include "dir.h"
 #include "datatype.h"
 #include "Preprocessor.h"
@@ -13,7 +11,6 @@
 #include <stdlib.h>
 #include <string>
 #include <vector>
-#include <snappy.h>
 #include "../Libraries/lz4/lib/lz4.h"
 #include <png.h>
 extern "C" {
@@ -382,18 +379,6 @@ int main(int argc, char** argv) {
 	else if (format == "icns") {
 		macIcon(image, to.c_str());
 	}
-	/*else if (format == "astc") {
-		astc(image, to.c_str());
-	}
-	else if (format == "pvrtc") {
-		pvrtc(image, to.c_str());
-	}*/
-	else if (format == "snappy") {
-		char* compressed = new char[snappy::MaxCompressedLength(image.stride * image.height)];
-		size_t compressedSize;
-		snappy::RawCompress((char*)image.pixels, image.stride * image.height, compressed, &compressedSize);
-		writeK(image.width, image.height, "SNAP", compressed, compressedSize, to.c_str());
-	}
 	else if (format == "lz4") {
 		int max = LZ4_compressBound(image.stride * image.height);
 		char* compressed = new char[max];
@@ -412,9 +397,11 @@ int main(int argc, char** argv) {
 						int width, height, size;
 						void* data;
 						datatype.encode(image.width, image.height, image.stride, format.c_str(), image.pixels, &width, &height, &size, &data);
-						char* compressed = new char[snappy::MaxCompressedLength(size)];
-						size_t compressedSize;
-						snappy::RawCompress((char*)data, size, compressed, &compressedSize);
+						
+						int max = LZ4_compressBound(size);
+						char* compressed = new char[max];
+						int compressedSize = LZ4_compress_default((char*)data, compressed, size, max);
+
 						std::string fourcc = format;
 						while (fourcc.size() < 4) {
 							fourcc += ' ';
