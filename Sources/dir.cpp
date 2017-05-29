@@ -8,7 +8,15 @@
 
 Directory openDir(const char* dirname) {
 	char pattern[MAX_PATH + 1];
-	strcpy(pattern, dirname);
+	HMODULE hModule = GetModuleHandleW(NULL);
+	GetModuleFileNameA(hModule, pattern, MAX_PATH);
+	for (int i = strlen(pattern) - 1; i >= 0; --i) {
+		if (pattern[i] == '\\') {
+			pattern[i + 1] = 0;
+			break;
+		}
+	}
+	strcat(pattern, dirname);
 	strcat(pattern, "\\*");
 	WIN32_FIND_DATAA data;
 	Directory dir;
