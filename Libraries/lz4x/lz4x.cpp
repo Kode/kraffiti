@@ -25,6 +25,7 @@ Written and placed in the public domain by Ilya Muravyov
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <math.h>
 
 #ifndef NO_UTIME
 #  include <sys/types.h>
@@ -41,8 +42,8 @@ typedef unsigned char U8;
 typedef unsigned short U16;
 typedef unsigned int U32;
 
-FILE* g_in;
-FILE* g_out;
+//FILE* g_in;
+//FILE* g_out;
 
 #define LZ4_MAGIC 0x184C2102
 #define BLOCK_SIZE (8<<20) // 8 MB
@@ -81,6 +82,7 @@ inline void wild_copy(int d, int s, int n)
   }
 }
 
+#if 0
 void compress(const int max_chain)
 {
   static int head[HASH_SIZE];
@@ -213,8 +215,26 @@ void compress(const int max_chain)
     fprintf(stderr, "%lld -> %lld\r", _ftelli64(g_in), _ftelli64(g_out));
   }
 }
+#endif
 
-void compress_brute()
+#define min(a, b) (((a) < (b)) ? (a) : (b)) 
+
+namespace {
+	int readData(void* ptr, int size, const char* input, int& inputIndex, int inputSize) {
+		int availableSize = min(size, inputSize - inputIndex);
+		memcpy(ptr, &input[inputIndex], availableSize);
+		input += availableSize;
+		return availableSize;
+	}
+
+	int writeData(const void* input, int size, char* output, int& outputIndex) {
+		memcpy(&output[outputIndex], input, size);
+		outputIndex += size;
+		return size;
+	}
+}
+
+int compress_brute(const char* input, int inputSize, char* output)
 {
   static int head[HASH_SIZE];
   static int nodes[WINDOW_SIZE][2];
@@ -226,8 +246,10 @@ void compress_brute()
     int dist;
   } path[BLOCK_SIZE+1];
 
+  int outputIndex = 0;
+  int inputIndex = 0;
   int n;
-  while ((n=fread(g_buf, 1, BLOCK_SIZE, g_in))>0)
+  while ((n=readData(g_buf, BLOCK_SIZE, input, inputIndex, inputSize))>0)
   {
     // Pass 1: Find all matches
 
@@ -422,13 +444,15 @@ void compress_brute()
     }
 
     const int comp_len=op-BLOCK_SIZE;
-    fwrite(&comp_len, 1, sizeof(comp_len), g_out);
-    fwrite(&g_buf[BLOCK_SIZE], 1, comp_len, g_out);
-
-    fprintf(stderr, "%lld -> %lld\r", _ftelli64(g_in), _ftelli64(g_out));
+    writeData(&comp_len, sizeof(comp_len), output, outputIndex);
+    writeData(&g_buf[BLOCK_SIZE], comp_len, output, outputIndex);
+	
+    //fprintf(stderr, "%lld -> %lld\r", _ftelli64(g_in), _ftelli64(g_out));
   }
+  return outputIndex;
 }
 
+#if 0
 void decompress()
 {
   int comp_len;
@@ -508,15 +532,17 @@ void decompress()
     }
   }
 }
+#endif
 
 int LZ4_compressBound(int inputSize) {
 	return inputSize + (inputSize / 255) + 16;
 }
 
 int LZ4_compress_default(const char* source, char* dest, int sourceSize, int maxDestSize) {
-	return 0;
+	return compress_brute(source, sourceSize, dest);
 }
 
+#if 0
 int lz4x_main(int argc, char** argv)
 {
   const clock_t start=clock();
@@ -683,3 +709,4 @@ int lz4x_main(int argc, char** argv)
 
   return 0;
 }
+#endif
