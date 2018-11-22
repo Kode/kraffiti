@@ -1,4 +1,6 @@
-let project = new Project('kraffiti', __dirname);
+let project = new Project('kraffiti');
+
+project.kore = false;
 
 project.setCmd();
 
