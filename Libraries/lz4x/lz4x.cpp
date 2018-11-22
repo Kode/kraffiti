@@ -509,7 +509,15 @@ void decompress()
   }
 }
 
-int main(int argc, char** argv)
+int LZ4_compressBound(int inputSize) {
+	return inputSize + (inputSize / 255) + 16;
+}
+
+int LZ4_compress_default(const char* source, char* dest, int sourceSize, int maxDestSize) {
+	return 0;
+}
+
+int lz4x_main(int argc, char** argv)
 {
   const clock_t start=clock();
 

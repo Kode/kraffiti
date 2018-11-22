@@ -39,7 +39,7 @@ project.addExclude("libjpeg/djpeg.c");
 project.addExclude("libjpeg/jpegtran.c");
 project.addExclude("libjpeg/example.c");
 
-project.addFile('Libraries/lz4/lib/**');
+project.addFile('Libraries/lz4x/**');
 
 project.addIncludeDir("Sources");
 project.addIncludeDir("zlib");

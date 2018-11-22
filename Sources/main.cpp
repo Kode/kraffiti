@@ -11,7 +11,7 @@
 #include <stdlib.h>
 #include <string>
 #include <vector>
-#include "../Libraries/lz4/lib/lz4.h"
+#include "../Libraries/lz4x/lz4x.h"
 #include <png.h>
 extern "C" {
 	#include <jpeglib.h>
