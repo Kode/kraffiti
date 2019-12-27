@@ -6,18 +6,6 @@ Written and placed in the public domain by Ilya Muravyov
 
 */
 
-#ifndef _MSC_VER
-#  define _FILE_OFFSET_BITS 64
-
-#  define _fseeki64 fseeko
-#  define _ftelli64 ftello
-#  define _stati64 stat
-
-#  define __min(a, b) (((a)<(b))?(a):(b))
-#  define __max(a, b) (((a)>(b))?(a):(b))
-#endif
-
-#define _CRT_SECURE_CPP_OVERLOAD_STANDARD_NAMES 1
 #define _CRT_SECURE_NO_WARNINGS
 #define _CRT_DISABLE_PERFCRIT_LOCKS
 
@@ -25,7 +13,6 @@ Written and placed in the public domain by Ilya Muravyov
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include <math.h>
 
 #ifndef NO_UTIME
 #  include <sys/types.h>
@@ -38,12 +25,16 @@ Written and placed in the public domain by Ilya Muravyov
 #  endif
 #endif
 
+#ifndef _MSC_VER
+#  define _ftelli64 ftello64
+#endif
+
 typedef unsigned char U8;
 typedef unsigned short U16;
 typedef unsigned int U32;
 
-//FILE* g_in;
-//FILE* g_out;
+FILE* g_in;
+FILE* g_out;
 
 #define LZ4_MAGIC 0x184C2102
 #define BLOCK_SIZE (8<<20) // 8 MB
@@ -55,16 +46,19 @@ typedef unsigned int U32;
 
 #define MIN_MATCH 4
 
-#define COMPRESS_BOUND (16+BLOCK_SIZE+(BLOCK_SIZE/255))
+#define EXCESS (16+(BLOCK_SIZE/255))
 
-U8 g_buf[BLOCK_SIZE+COMPRESS_BOUND];
+U8 g_buf[BLOCK_SIZE+BLOCK_SIZE+EXCESS];
+
+#define MIN(a, b) (((a)<(b))?(a):(b))
+#define MAX(a, b) (((a)>(b))?(a):(b))
 
 #define LOAD_16(p) (*reinterpret_cast<const U16*>(&g_buf[p]))
 #define LOAD_32(p) (*reinterpret_cast<const U32*>(&g_buf[p]))
 #define STORE_16(p, x) (*reinterpret_cast<U16*>(&g_buf[p])=(x))
 #define COPY_32(d, s) (*reinterpret_cast<U32*>(&g_buf[d])=LOAD_32(s))
 
-#define HASH_BITS 19
+#define HASH_BITS 18
 #define HASH_SIZE (1<<HASH_BITS)
 #define NIL (-1)
 
@@ -101,16 +95,16 @@ void compress(const int max_chain)
     while (p<n)
     {
       int best_len=0;
-      int dist;
+      int dist=0;
 
       const int max_match=(n-PADDING_LITERALS)-p;
-      if (max_match>=__max(12-PADDING_LITERALS, MIN_MATCH))
+      if (max_match>=MAX(12-PADDING_LITERALS, MIN_MATCH))
       {
-        const int w_start=__max(p-WINDOW_SIZE, NIL);
+        const int limit=MAX(p-WINDOW_SIZE, NIL);
         int chain_len=max_chain;
 
         int s=head[HASH_32(p)];
-        while (s>w_start)
+        while (s>limit)
         {
           if (g_buf[s+best_len]==g_buf[p+best_len] && LOAD_32(s)==LOAD_32(p))
           {
@@ -138,7 +132,7 @@ void compress(const int max_chain)
       if (best_len>=MIN_MATCH)
       {
         int len=best_len-MIN_MATCH;
-        const int nib=__min(len, 15);
+        const int nib=MIN(len, 15);
 
         if (pp!=p)
         {
@@ -217,24 +211,22 @@ void compress(const int max_chain)
 }
 #endif
 
-#define min(a, b) (((a) < (b)) ? (a) : (b)) 
-
 namespace {
-	int readData(void* ptr, int size, const char* input, int& inputIndex, int inputSize) {
-		int availableSize = min(size, inputSize - inputIndex);
-		memcpy(ptr, &input[inputIndex], availableSize);
-		input += availableSize;
-		return availableSize;
-	}
+  int readData(void* ptr, int size, const char* input, int& inputIndex, int inputSize) {
+    int availableSize = MIN(size, inputSize - inputIndex);
+    memcpy(ptr, &input[inputIndex], availableSize);
+    input += availableSize;
+    return availableSize;
+  }
 
-	int writeData(const void* input, int size, char* output, int& outputIndex) {
-		memcpy(&output[outputIndex], input, size);
-		outputIndex += size;
-		return size;
-	}
+  int writeData(const void* input, int size, char* output, int& outputIndex) {
+    memcpy(&output[outputIndex], input, size);
+    outputIndex += size;
+    return size;
+  }
 }
 
-int compress_brute(const char* input, int inputSize, char* output)
+int compress_optimal(const char* input, int inputSize, char* output)
 {
   static int head[HASH_SIZE];
   static int nodes[WINDOW_SIZE][2];
@@ -259,12 +251,12 @@ int compress_brute(const char* input, int inputSize, char* output)
     for (int p=0; p<n; ++p)
     {
       int best_len=0;
-      int dist;
+      int dist=0;
 
       const int max_match=(n-PADDING_LITERALS)-p;
-      if (max_match>=__max(12-PADDING_LITERALS, MIN_MATCH))
+      if (max_match>=MAX(12-PADDING_LITERALS, MIN_MATCH))
       {
-        const int w_start=__max(p-WINDOW_SIZE, NIL);
+        const int limit=MAX(p-WINDOW_SIZE, NIL);
 
         int* left=&nodes[p&WINDOW_MASK][1];
         int* right=&nodes[p&WINDOW_MASK][0];
@@ -276,9 +268,9 @@ int compress_brute(const char* input, int inputSize, char* output)
         int s=head[h];
         head[h]=p;
 
-        while (s>w_start)
+        while (s>limit)
         {
-          int len=__min(left_len, right_len);
+          int len=MIN(left_len, right_len);
 
           if (g_buf[s+len]==g_buf[p+len])
           {
@@ -339,7 +331,7 @@ int compress_brute(const char* input, int inputSize, char* output)
       {
         int c1=1<<30;
 
-        const int j=__max(len-255, MIN_MATCH);
+        const int j=MAX(len-255, MIN_MATCH);
         for (int i=len; i>=j; --i)
         {
           int tmp=path[p+i].cum+3;
@@ -382,7 +374,7 @@ int compress_brute(const char* input, int inputSize, char* output)
       if (path[p].len>=MIN_MATCH)
       {
         int len=path[p].len-MIN_MATCH;
-        const int nib=__min(len, 15);
+        const int nib=MIN(len, 15);
 
         if (pp!=p)
         {
@@ -446,14 +438,14 @@ int compress_brute(const char* input, int inputSize, char* output)
     const int comp_len=op-BLOCK_SIZE;
     writeData(&comp_len, sizeof(comp_len), output, outputIndex);
     writeData(&g_buf[BLOCK_SIZE], comp_len, output, outputIndex);
-	
+
     //fprintf(stderr, "%lld -> %lld\r", _ftelli64(g_in), _ftelli64(g_out));
   }
   return outputIndex;
 }
 
 #if 0
-void decompress()
+int decompress()
 {
   int comp_len;
   while (fread(&comp_len, 1, sizeof(comp_len), g_in)>0)
@@ -461,12 +453,9 @@ void decompress()
     if (comp_len==LZ4_MAGIC)
       continue;
 
-    if (comp_len<0 || comp_len>COMPRESS_BOUND
+    if (comp_len<2 || comp_len>(BLOCK_SIZE+EXCESS)
         || fread(&g_buf[BLOCK_SIZE], 1, comp_len, g_in)!=comp_len)
-    {
-      fprintf(stderr, "Corrupt input\n");
-      exit(1);
-    }
+      return -1;
 
     int p=0;
 
@@ -489,17 +478,20 @@ void decompress()
               break;
           }
         }
+        if ((p+run)>BLOCK_SIZE)
+          return -1;
 
         wild_copy(p, ip, run);
         p+=run;
         ip+=run;
-
         if (ip>=ip_end)
           break;
       }
 
       int s=p-LOAD_16(ip);
       ip+=2;
+      if (s<0)
+        return -1;
 
       int len=(token&15)+MIN_MATCH;
       if (len==(15+MIN_MATCH))
@@ -512,6 +504,8 @@ void decompress()
             break;
         }
       }
+      if ((p+len)>BLOCK_SIZE)
+        return -1;
 
       if ((p-s)>=4)
       {
@@ -531,7 +525,6 @@ void decompress()
       exit(1);
     }
   }
-}
 #endif
 
 int LZ4_compressBound(int inputSize) {
@@ -539,15 +532,15 @@ int LZ4_compressBound(int inputSize) {
 }
 
 int LZ4_compress_default(const char* source, char* dest, int sourceSize, int maxDestSize) {
-	return compress_brute(source, sourceSize, dest);
+	return compress_optimal(source, sourceSize, dest);
 }
 
 #if 0
-int lz4x_main(int argc, char** argv)
+int main(int argc, char** argv)
 {
   const clock_t start=clock();
 
-  int level=5;
+  int level=4;
   bool do_decomp=false;
   bool overwrite=false;
 
@@ -575,7 +568,7 @@ int lz4x_main(int argc, char** argv)
         overwrite=true;
         break;
       default:
-        fprintf(stderr, "Unknown option '-%c'\n", argv[1][i]);
+        fprintf(stderr, "Unknown option: -%c\n", argv[1][i]);
         exit(1);
       }
     }
@@ -587,7 +580,7 @@ int lz4x_main(int argc, char** argv)
   if (argc<2)
   {
     fprintf(stderr,
-        "LZ4X - An optimized LZ4 compressor, v1.50\n"
+        "LZ4X - An optimized LZ4 compressor, v1.60\n"
         "Written and placed in the public domain by Ilya Muravyov\n"
         "\n"
         "Usage: LZ4X [options] infile [outfile]\n"
@@ -662,7 +655,11 @@ int lz4x_main(int argc, char** argv)
 
     fprintf(stderr, "Decompressing %s:\n", argv[1]);
 
-    decompress();
+    if (decompress()!=0)
+    {
+      fprintf(stderr, "%s: Corrupt input\n", argv[1]);
+      exit(1);
+    }
   }
   else
   {
@@ -679,9 +676,9 @@ int lz4x_main(int argc, char** argv)
     fprintf(stderr, "Compressing %s:\n", argv[1]);
 
     if (level==9)
-      compress_brute();
+      compress_optimal();
     else
-      compress((level==8)?WINDOW_SIZE:1<<level);
+      compress((level<8)?1<<level:WINDOW_SIZE);
   }
 
   fprintf(stderr, "%lld -> %lld in %1.3f sec\n", _ftelli64(g_in),
