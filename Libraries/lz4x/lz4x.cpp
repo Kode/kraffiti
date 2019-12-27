@@ -33,8 +33,8 @@ typedef unsigned char U8;
 typedef unsigned short U16;
 typedef unsigned int U32;
 
-FILE* g_in;
-FILE* g_out;
+//FILE* g_in;
+//FILE* g_out;
 
 #define LZ4_MAGIC 0x184C2102
 #define BLOCK_SIZE (8<<20) // 8 MB
@@ -215,7 +215,7 @@ namespace {
   int readData(void* ptr, int size, const char* input, int& inputIndex, int inputSize) {
     int availableSize = MIN(size, inputSize - inputIndex);
     memcpy(ptr, &input[inputIndex], availableSize);
-    input += availableSize;
+    inputIndex += availableSize;
     return availableSize;
   }
 
