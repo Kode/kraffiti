@@ -1,20 +1,25 @@
 #include "Icons.h"
-#include "dir.h"
-#include "datatype.h"
 #include "Preprocessor.h"
+#include "datatype.h"
+#include "dir.h"
+
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
+
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
+
 #include <memory.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string>
 #include <vector>
+
 #include "../Libraries/lz4x/lz4x.h"
+
 #include <png.h>
 extern "C" {
-	#include <jpeglib.h>
+#include <jpeglib.h>
 }
 
 bool startsWith(std::string a, std::string b) {
@@ -43,7 +48,7 @@ struct my_error_mgr {
 	jmp_buf setjmp_buffer;
 };
 
-typedef struct my_error_mgr* my_error_ptr;
+typedef struct my_error_mgr *my_error_ptr;
 
 void my_error_exit(j_common_ptr cinfo) {
 	my_error_ptr myerr = (my_error_ptr)cinfo->err;
@@ -51,11 +56,11 @@ void my_error_exit(j_common_ptr cinfo) {
 	longjmp(myerr->setjmp_buffer, 1);
 }
 
-Image readJPEG(const char* filename) {
+Image readJPEG(const char *filename) {
 	my_error_mgr jerr;
-	
-	FILE* infile;
-	
+
+	FILE *infile;
+
 	int row_stride;
 
 	if ((infile = fopen(filename, "rb")) == NULL) {
@@ -80,8 +85,8 @@ Image readJPEG(const char* filename) {
 	jpeg_read_header(&cinfo, TRUE);
 	jpeg_start_decompress(&cinfo);
 
-	Image image((byte*)malloc(cinfo.output_width * cinfo.output_height * 4), cinfo.output_width, cinfo.output_height);
-	
+	Image image((byte *)malloc(cinfo.output_width * cinfo.output_height * 4), cinfo.output_width, cinfo.output_height);
+
 	row_stride = cinfo.output_width * cinfo.output_components;
 	JSAMPARRAY buffer = (*cinfo.mem->alloc_sarray)((j_common_ptr)&cinfo, JPOOL_IMAGE, row_stride, 1);
 
@@ -103,17 +108,17 @@ Image readJPEG(const char* filename) {
 	return image;
 }
 
-void writeJPEG(Image image, const char* filename) {
+void writeJPEG(Image image, const char *filename) {
 	int quality = 85;
 
 	jpeg_compress_struct cinfo;
 	jpeg_error_mgr jerr;
-	
-	FILE* outfile;
+
+	FILE *outfile;
 	JSAMPROW row_pointer[1];
-	
+
 	cinfo.err = jpeg_std_error(&jerr);
-	
+
 	jpeg_create_compress(&cinfo);
 
 	if ((outfile = fopen(filename, "wb")) == NULL) {
@@ -132,7 +137,7 @@ void writeJPEG(Image image, const char* filename) {
 
 	jpeg_start_compress(&cinfo, TRUE);
 
-	byte* row = (byte*)malloc(image.width * 3);
+	byte *row = (byte *)malloc(image.width * 3);
 	while (cinfo.next_scanline < cinfo.image_height) {
 		for (int x = 0; x < image.width; ++x) {
 			row[x * 3 + 0] = image.pixels[cinfo.next_scanline * image.stride + x * image.components + 0];
@@ -149,7 +154,7 @@ void writeJPEG(Image image, const char* filename) {
 	jpeg_destroy_compress(&cinfo);
 }
 
-Image readPNG(const char* filename) {
+Image readPNG(const char *filename) {
 	png_image image;
 	memset(&image, 0, sizeof(image));
 	image.version = PNG_IMAGE_VERSION;
@@ -165,7 +170,7 @@ Image readPNG(const char* filename) {
 	return Image(NULL, 0, 0);
 }
 
-void writePNG(Image image, const char* filename) {
+void writePNG(Image image, const char *filename) {
 	png_image img;
 	memset(&img, 0, sizeof(image));
 	img.version = PNG_IMAGE_VERSION;
@@ -180,7 +185,7 @@ void writePNG(Image image, const char* filename) {
 	}
 }
 
-Image readHDR(const char* filename, bool storeHdr, int storeComponents) {
+Image readHDR(const char *filename, bool storeHdr, int storeComponents) {
 	int width, height, n;
 	if (storeHdr) {
 		float *data = stbi_loadf(filename, &width, &height, &n, storeComponents);
@@ -195,10 +200,10 @@ Image readHDR(const char* filename, bool storeHdr, int storeComponents) {
 	}
 }
 
-void writeHDR(Image image, const char* filename) {
+void writeHDR(Image image, const char *filename) {
 	float *pixels;
 	if (!image.isHdr) {
-		pixels = (float*)malloc(image.width * image.height * image.components * sizeof(float));
+		pixels = (float *)malloc(image.width * image.height * image.components * sizeof(float));
 		for (int i = 0; i < image.width * image.width * image.components; ++i) {
 			pixels[i] = float(image.pixels[i]) / 255;
 		}
@@ -206,18 +211,18 @@ void writeHDR(Image image, const char* filename) {
 	else {
 		pixels = image.hdrPixels;
 	}
-	
+
 	if (!stbi_write_hdr(filename, image.width, image.height, image.components, pixels)) {
 		// error
 	}
-	
+
 	if (!image.isHdr) {
 		free(pixels);
 	}
 }
 
-void writeK(int width, int height, const char* format, char* data, int size, const char* filename) {
-	FILE* file = fopen(filename, "wb");
+void writeK(int width, int height, const char *format, char *data, int size, const char *filename) {
+	FILE *file = fopen(filename, "wb");
 
 	fputc((byte)width, file);
 	fputc((byte)(width >> 8), file);
@@ -228,7 +233,7 @@ void writeK(int width, int height, const char* format, char* data, int size, con
 	fputc((byte)(height >> 8), file);
 	fputc((byte)(height >> 16), file);
 	fputc((byte)(height >> 24), file);
-	
+
 	fputc(format[0], file);
 	fputc(format[1], file);
 	fputc(format[2], file);
@@ -239,7 +244,7 @@ void writeK(int width, int height, const char* format, char* data, int size, con
 	fclose(file);
 }
 
-int main(int argc, char** argv) {
+int main(int argc, char **argv) {
 	std::string from = "icon.png";
 	std::string to = "output.png";
 	std::string format = "png";
@@ -259,9 +264,12 @@ int main(int argc, char** argv) {
 	for (int i = 1; i < argc; ++i) {
 		std::string arg(argv[i]);
 
-		if (startsWith(arg, "from=")) from = arg.substr(5);
-		else if (startsWith(arg, "to=")) to = arg.substr(3);
-		else if (startsWith(arg, "format=")) format = arg.substr(7);
+		if (startsWith(arg, "from="))
+			from = arg.substr(5);
+		else if (startsWith(arg, "to="))
+			to = arg.substr(3);
+		else if (startsWith(arg, "format="))
+			format = arg.substr(7);
 		else if (startsWith(arg, "width=")) {
 			std::string substring = arg.substr(6);
 			width = atoi(substring.c_str());
@@ -314,9 +322,12 @@ int main(int argc, char** argv) {
 	}
 
 	Image image(NULL, 0, 0);
-	if (endsWith(from, ".png")) image = readPNG(from.c_str());
-	else if (endsWith(from, ".hdr")) image = readHDR(from.c_str(), format == "hdr" || format == "lz4", format == "lz4" ? 4 : 3);
-	else image = readJPEG(from.c_str());
+	if (endsWith(from, ".png"))
+		image = readPNG(from.c_str());
+	else if (endsWith(from, ".hdr"))
+		image = readHDR(from.c_str(), format == "hdr" || format == "lz4", format == "lz4" ? 4 : 3);
+	else
+		image = readJPEG(from.c_str());
 
 	if (scale != 1) {
 		width = (int)(image.width * scale);
@@ -324,24 +335,27 @@ int main(int argc, char** argv) {
 		if (width <= 0) width = 1;
 		if (height <= 0) height = 1;
 	}
-	
+
 	if (width < 0) width = image.width;
 	if (height < 0) height = image.height;
 
-	
 	printf("#%ix%i\n", width, height);
 
 	if (dobackground) {
-		for (int y = 0; y < image.height; ++y) for (int x = 0; x < image.width; ++x) {
-			float alpha = image.pixels[y * image.stride + x * 4 + 3] / 255.0f;
-			float red = ((backgroundColor & 0xff000000) >> 24) / 255.0f;
-			float green = ((backgroundColor & 0xff0000) >> 16) / 255.0f;
-			float blue = ((backgroundColor & 0xff00) >> 8) / 255.0f;
-			image.pixels[y * image.stride + x * 4 + 0] = (byte)((alpha * (image.pixels[y * image.stride + x * 4 + 0] / 255.0f) + (1 - alpha) * red) * 255.0f);
-			image.pixels[y * image.stride + x * 4 + 1] = (byte)((alpha * (image.pixels[y * image.stride + x * 4 + 1] / 255.0f) + (1 - alpha) * green) * 255.0f);
-			image.pixels[y * image.stride + x * 4 + 2] = (byte)((alpha * (image.pixels[y * image.stride + x * 4 + 2] / 255.0f) + (1 - alpha) * blue) * 255.0f);
-			image.pixels[y * image.stride + x * 4 + 3] = backgroundColor & 0xff;
-		}
+		for (int y = 0; y < image.height; ++y)
+			for (int x = 0; x < image.width; ++x) {
+				float alpha = image.pixels[y * image.stride + x * 4 + 3] / 255.0f;
+				float red = ((backgroundColor & 0xff000000) >> 24) / 255.0f;
+				float green = ((backgroundColor & 0xff0000) >> 16) / 255.0f;
+				float blue = ((backgroundColor & 0xff00) >> 8) / 255.0f;
+				image.pixels[y * image.stride + x * 4 + 0] =
+				    (byte)((alpha * (image.pixels[y * image.stride + x * 4 + 0] / 255.0f) + (1 - alpha) * red) * 255.0f);
+				image.pixels[y * image.stride + x * 4 + 1] =
+				    (byte)((alpha * (image.pixels[y * image.stride + x * 4 + 1] / 255.0f) + (1 - alpha) * green) * 255.0f);
+				image.pixels[y * image.stride + x * 4 + 2] =
+				    (byte)((alpha * (image.pixels[y * image.stride + x * 4 + 2] / 255.0f) + (1 - alpha) * blue) * 255.0f);
+				image.pixels[y * image.stride + x * 4 + 3] = backgroundColor & 0xff;
+			}
 	}
 
 	if (topowerofto || width != image.width || height != image.height) {
@@ -382,14 +396,14 @@ int main(int argc, char** argv) {
 	else if (format == "lz4") {
 		if (image.isHdr) {
 			int max = LZ4_compressBound(image.width * image.height * 16);
-			char* compressed = new char[max];
-			int compressedSize = LZ4_compress_default((char*)image.hdrPixels, compressed, image.width * image.height * 16, max);
+			char *compressed = new char[max];
+			int compressedSize = LZ4_compress_default((char *)image.hdrPixels, compressed, image.width * image.height * 16, max);
 			writeK(image.width, image.height, "LZ4F", compressed, compressedSize, to.c_str());
 		}
 		else {
 			int max = LZ4_compressBound(image.stride * image.height);
-			char* compressed = new char[max];
-			int compressedSize = LZ4_compress_default((char*)image.pixels, compressed, image.stride * image.height, max);
+			char *compressed = new char[max];
+			int compressedSize = LZ4_compress_default((char *)image.pixels, compressed, image.stride * image.height, max);
 			writeK(image.width, image.height, "LZ4 ", compressed, compressedSize, to.c_str());
 		}
 	}
@@ -403,12 +417,12 @@ int main(int argc, char** argv) {
 				for (size_t i = 0; i < formats.size(); ++i) {
 					if (format == formats[i]) {
 						int width, height, size;
-						void* data;
+						void *data;
 						datatype.encode(image.width, image.height, image.stride, format.c_str(), image.pixels, &width, &height, &size, &data);
-						
+
 						int max = LZ4_compressBound(size);
-						char* compressed = new char[max];
-						int compressedSize = LZ4_compress_default((char*)data, compressed, size, max);
+						char *compressed = new char[max];
+						int compressedSize = LZ4_compress_default((char *)data, compressed, size, max);
 
 						std::string fourcc = format;
 						while (fourcc.size() < 4) {
