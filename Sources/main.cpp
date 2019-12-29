@@ -186,12 +186,12 @@ void writePNG(Image image, const char *filename) {
 }
 
 void writePNG24(Image image, const char *filename) {
-	unsigned char *rgb = new unsigned char[image.width * image.height];
+	unsigned char *rgb = new unsigned char[image.width * image.height * 3];
 	for (int y = 0; y < image.height; ++y) {
 		for (int x = 0; x < image.width; ++x) {
-			rgb[y * image.width * 3 + image.width * 3 + 0] = image.pixels[y * image.width * 4 + image.width * 4 + 0];
-			rgb[y * image.width * 3 + image.width * 3 + 1] = image.pixels[y * image.width * 4 + image.width * 4 + 1];
-			rgb[y * image.width * 3 + image.width * 3 + 2] = image.pixels[y * image.width * 4 + image.width * 4 + 2];
+			rgb[y * image.width * 3 + x * 3 + 0] = image.pixels[y * image.width * 4 + x * 4 + 0];
+			rgb[y * image.width * 3 + x * 3 + 1] = image.pixels[y * image.width * 4 + x * 4 + 1];
+			rgb[y * image.width * 3 + x * 3 + 2] = image.pixels[y * image.width * 4 + x * 4 + 2];
 		}
 	}
 
