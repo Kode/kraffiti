@@ -185,6 +185,32 @@ void writePNG(Image image, const char *filename) {
 	}
 }
 
+void writePNG24(Image image, const char *filename) {
+	unsigned char *rgb = new unsigned char[image.width * image.height];
+	for (int y = 0; y < image.height; ++y) {
+		for (int x = 0; x < image.width; ++x) {
+			rgb[y * image.width * 3 + image.width * 3 + 0] = image.pixels[y * image.width * 4 + image.width * 4 + 0];
+			rgb[y * image.width * 3 + image.width * 3 + 1] = image.pixels[y * image.width * 4 + image.width * 4 + 1];
+			rgb[y * image.width * 3 + image.width * 3 + 2] = image.pixels[y * image.width * 4 + image.width * 4 + 2];
+		}
+	}
+
+	png_image img;
+	memset(&img, 0, sizeof(image));
+	img.version = PNG_IMAGE_VERSION;
+	img.opaque = NULL;
+	img.width = image.width;
+	img.height = image.height;
+	img.format = PNG_FORMAT_RGB;
+	img.flags = 0;
+
+	if (!png_image_write_to_file(&img, filename, 0, rgb, 0, NULL)) {
+		// error
+	}
+
+	delete[] rgb;
+}
+
 Image readHDR(const char *filename, bool storeHdr, int storeComponents) {
 	int width, height, n;
 	if (storeHdr) {
@@ -380,6 +406,9 @@ int main(int argc, char **argv) {
 
 	if (format == "png") {
 		writePNG(image, to.c_str());
+	}
+	else if (format == "png24") {
+		writePNG24(image, to.c_str());
 	}
 	else if (format == "jpg" || format == "jpeg") {
 		writeJPEG(image, to.c_str());
