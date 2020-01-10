@@ -74,141 +74,6 @@ inline void wild_copy(int d, int s, int n) {
 	}
 }
 
-#if 0
-void compress(const int max_chain)
-{
-  static int head[HASH_SIZE];
-  static int tail[WINDOW_SIZE];
-
-  int n;
-  while ((n=fread(g_buf, 1, BLOCK_SIZE, g_in))>0)
-  {
-    for (int i=0; i<HASH_SIZE; ++i)
-      head[i]=NIL;
-
-    int op=BLOCK_SIZE;
-    int pp=0;
-
-    int p=0;
-    while (p<n)
-    {
-      int best_len=0;
-      int dist=0;
-
-      const int max_match=(n-PADDING_LITERALS)-p;
-      if (max_match>=MAX(12-PADDING_LITERALS, MIN_MATCH))
-      {
-        const int limit=MAX(p-WINDOW_SIZE, NIL);
-        int chain_len=max_chain;
-
-        int s=head[HASH_32(p)];
-        while (s>limit)
-        {
-          if (g_buf[s+best_len]==g_buf[p+best_len] && LOAD_32(s)==LOAD_32(p))
-          {
-            int len=MIN_MATCH;
-            while (len<max_match && g_buf[s+len]==g_buf[p+len])
-              ++len;
-
-            if (len>best_len)
-            {
-              best_len=len;
-              dist=p-s;
-
-              if (len==max_match)
-                break;
-            }
-          }
-
-          if (--chain_len==0)
-            break;
-
-          s=tail[s&WINDOW_MASK];
-        }
-      }
-
-      if (best_len>=MIN_MATCH)
-      {
-        int len=best_len-MIN_MATCH;
-        const int nib=MIN(len, 15);
-
-        if (pp!=p)
-        {
-          const int run=p-pp;
-          if (run>=15)
-          {
-            g_buf[op++]=(15<<4)+nib;
-
-            int j=run-15;
-            for (; j>=255; j-=255)
-              g_buf[op++]=255;
-            g_buf[op++]=j;
-          }
-          else
-            g_buf[op++]=(run<<4)+nib;
-
-          wild_copy(op, pp, run);
-          op+=run;
-        }
-        else
-          g_buf[op++]=nib;
-
-        STORE_16(op, dist);
-        op+=2;
-
-        if (len>=15)
-        {
-          len-=15;
-          for (; len>=255; len-=255)
-            g_buf[op++]=255;
-          g_buf[op++]=len;
-        }
-
-        pp=p+best_len;
-
-        while (p<pp)
-        {
-          const U32 h=HASH_32(p);
-          tail[p&WINDOW_MASK]=head[h];
-          head[h]=p++;
-        }
-      }
-      else
-      {
-        const U32 h=HASH_32(p);
-        tail[p&WINDOW_MASK]=head[h];
-        head[h]=p++;
-      }
-    }
-
-    if (pp!=p)
-    {
-      const int run=p-pp;
-      if (run>=15)
-      {
-        g_buf[op++]=15<<4;
-
-        int j=run-15;
-        for (; j>=255; j-=255)
-          g_buf[op++]=255;
-        g_buf[op++]=j;
-      }
-      else
-        g_buf[op++]=run<<4;
-
-      wild_copy(op, pp, run);
-      op+=run;
-    }
-
-    const int comp_len=op-BLOCK_SIZE;
-    fwrite(&comp_len, 1, sizeof(comp_len), g_out);
-    fwrite(&g_buf[BLOCK_SIZE], 1, comp_len, g_out);
-
-    fprintf(stderr, "%lld -> %lld\r", _ftelli64(g_in), _ftelli64(g_out));
-  }
-}
-#endif
-
 namespace {
 	int readData(void *ptr, int size, const char *input, int &inputIndex, int inputSize) {
 		int availableSize = MIN(size, inputSize - inputIndex);
@@ -222,195 +87,306 @@ namespace {
 		outputIndex += size;
 		return size;
 	}
-}
 
-int compress_optimal(const char *input, int inputSize, char *output) {
-	static int head[HASH_SIZE];
-	static int nodes[WINDOW_SIZE][2];
-	static struct {
-		int cum;
+	void compress(const int max_chain) {
+		static int head[HASH_SIZE];
+		static int tail[WINDOW_SIZE];
 
-		int len;
-		int dist;
-	} path[BLOCK_SIZE + 1];
+		int n;
+		while ((n = fread(g_buf, 1, BLOCK_SIZE, g_in)) > 0) {
+			for (int i = 0; i < HASH_SIZE; ++i) head[i] = NIL;
 
-	int outputIndex = 0;
-	int inputIndex = 0;
-	int n;
-	while ((n = readData(g_buf, BLOCK_SIZE, input, inputIndex, inputSize)) > 0) {
-		// Pass 1: Find all matches
+			int op = BLOCK_SIZE;
+			int pp = 0;
 
-		for (int i = 0; i < HASH_SIZE; ++i) head[i] = NIL;
+			int p = 0;
+			while (p < n) {
+				int best_len = 0;
+				int dist = 0;
 
-		for (int p = 0; p < n; ++p) {
-			int best_len = 0;
-			int dist = 0;
+				const int max_match = (n - PADDING_LITERALS) - p;
+				if (max_match >= MAX(12 - PADDING_LITERALS, MIN_MATCH)) {
+					const int limit = MAX(p - WINDOW_SIZE, NIL);
+					int chain_len = max_chain;
 
-			const int max_match = (n - PADDING_LITERALS) - p;
-			if (max_match >= MAX(12 - PADDING_LITERALS, MIN_MATCH)) {
-				const int limit = MAX(p - WINDOW_SIZE, NIL);
+					int s = head[HASH_32(p)];
+					while (s > limit) {
+						if (g_buf[s + best_len] == g_buf[p + best_len] && LOAD_32(s) == LOAD_32(p)) {
+							int len = MIN_MATCH;
+							while (len < max_match && g_buf[s + len] == g_buf[p + len]) ++len;
 
-				int *left = &nodes[p & WINDOW_MASK][1];
-				int *right = &nodes[p & WINDOW_MASK][0];
+							if (len > best_len) {
+								best_len = len;
+								dist = p - s;
 
-				int left_len = 0;
-				int right_len = 0;
+								if (len == max_match) break;
+							}
+						}
 
-				const U32 h = HASH_32(p);
-				int s = head[h];
-				head[h] = p;
+						if (--chain_len == 0) break;
 
-				while (s > limit) {
-					int len = MIN(left_len, right_len);
+						s = tail[s & WINDOW_MASK];
+					}
+				}
 
-					if (g_buf[s + len] == g_buf[p + len]) {
-						while (++len < max_match && g_buf[s + len] == g_buf[p + len])
-							;
+				if (best_len >= MIN_MATCH) {
+					int len = best_len - MIN_MATCH;
+					const int nib = MIN(len, 15);
 
-						if (len > best_len) {
-							best_len = len;
-							dist = p - s;
+					if (pp != p) {
+						const int run = p - pp;
+						if (run >= 15) {
+							g_buf[op++] = (15 << 4) + nib;
 
-							if (len == max_match || len >= (1 << 16)) break;
+							int j = run - 15;
+							for (; j >= 255; j -= 255) g_buf[op++] = 255;
+							g_buf[op++] = j;
+						}
+						else
+							g_buf[op++] = (run << 4) + nib;
+
+						wild_copy(op, pp, run);
+						op += run;
+					}
+					else
+						g_buf[op++] = nib;
+
+					STORE_16(op, dist);
+					op += 2;
+
+					if (len >= 15) {
+						len -= 15;
+						for (; len >= 255; len -= 255) g_buf[op++] = 255;
+						g_buf[op++] = len;
+					}
+
+					pp = p + best_len;
+
+					while (p < pp) {
+						const U32 h = HASH_32(p);
+						tail[p & WINDOW_MASK] = head[h];
+						head[h] = p++;
+					}
+				}
+				else {
+					const U32 h = HASH_32(p);
+					tail[p & WINDOW_MASK] = head[h];
+					head[h] = p++;
+				}
+			}
+
+			if (pp != p) {
+				const int run = p - pp;
+				if (run >= 15) {
+					g_buf[op++] = 15 << 4;
+
+					int j = run - 15;
+					for (; j >= 255; j -= 255) g_buf[op++] = 255;
+					g_buf[op++] = j;
+				}
+				else
+					g_buf[op++] = run << 4;
+
+				wild_copy(op, pp, run);
+				op += run;
+			}
+
+			const int comp_len = op - BLOCK_SIZE;
+			fwrite(&comp_len, 1, sizeof(comp_len), g_out);
+			fwrite(&g_buf[BLOCK_SIZE], 1, comp_len, g_out);
+
+			fprintf(stderr, "%lld -> %lld\r", _ftelli64(g_in), _ftelli64(g_out));
+		}
+	}
+
+	int compress_optimal(const char *input, int inputSize, char *output) {
+		static int head[HASH_SIZE];
+		static int nodes[WINDOW_SIZE][2];
+		static struct {
+			int cum;
+
+			int len;
+			int dist;
+		} path[BLOCK_SIZE + 1];
+
+		int outputIndex = 0;
+		int inputIndex = 0;
+		int n;
+		while ((n = readData(g_buf, BLOCK_SIZE, input, inputIndex, inputSize)) > 0) {
+			// Pass 1: Find all matches
+
+			for (int i = 0; i < HASH_SIZE; ++i) head[i] = NIL;
+
+			for (int p = 0; p < n; ++p) {
+				int best_len = 0;
+				int dist = 0;
+
+				const int max_match = (n - PADDING_LITERALS) - p;
+				if (max_match >= MAX(12 - PADDING_LITERALS, MIN_MATCH)) {
+					const int limit = MAX(p - WINDOW_SIZE, NIL);
+
+					int *left = &nodes[p & WINDOW_MASK][1];
+					int *right = &nodes[p & WINDOW_MASK][0];
+
+					int left_len = 0;
+					int right_len = 0;
+
+					const U32 h = HASH_32(p);
+					int s = head[h];
+					head[h] = p;
+
+					while (s > limit) {
+						int len = MIN(left_len, right_len);
+
+						if (g_buf[s + len] == g_buf[p + len]) {
+							while (++len < max_match && g_buf[s + len] == g_buf[p + len])
+								;
+
+							if (len > best_len) {
+								best_len = len;
+								dist = p - s;
+
+								if (len == max_match || len >= (1 << 16)) break;
+							}
+						}
+
+						if (g_buf[s + len] < g_buf[p + len]) {
+							*right = s;
+							right = &nodes[s & WINDOW_MASK][1];
+							s = *right;
+							right_len = len;
+						}
+						else {
+							*left = s;
+							left = &nodes[s & WINDOW_MASK][0];
+							s = *left;
+							left_len = len;
 						}
 					}
 
-					if (g_buf[s + len] < g_buf[p + len]) {
-						*right = s;
-						right = &nodes[s & WINDOW_MASK][1];
-						s = *right;
-						right_len = len;
+					*left = NIL;
+					*right = NIL;
+				}
+
+				path[p].len = best_len;
+				path[p].dist = dist;
+			}
+
+			// Pass 2: Build the shortest path
+
+			path[n].cum = 0;
+
+			int count = 15;
+
+			for (int p = n - 1; p > 0; --p) {
+				int c0 = path[p + 1].cum + 1;
+
+				if (--count == 0) {
+					count = 255;
+					++c0;
+				}
+
+				int len = path[p].len;
+				if (len >= MIN_MATCH) {
+					int c1 = 1 << 30;
+
+					const int j = MAX(len - 255, MIN_MATCH);
+					for (int i = len; i >= j; --i) {
+						int tmp = path[p + i].cum + 3;
+
+						if (i >= (15 + MIN_MATCH)) tmp += 1 + ((i - (15 + MIN_MATCH)) / 255);
+
+						if (tmp < c1) {
+							c1 = tmp;
+							len = i;
+						}
+					}
+
+					if (c1 <= c0) {
+						path[p].cum = c1;
+						path[p].len = len;
+
+						count = 15;
 					}
 					else {
-						*left = s;
-						left = &nodes[s & WINDOW_MASK][0];
-						s = *left;
-						left_len = len;
+						path[p].cum = c0;
+						path[p].len = 0;
 					}
-				}
-
-				*left = NIL;
-				*right = NIL;
-			}
-
-			path[p].len = best_len;
-			path[p].dist = dist;
-		}
-
-		// Pass 2: Build the shortest path
-
-		path[n].cum = 0;
-
-		int count = 15;
-
-		for (int p = n - 1; p > 0; --p) {
-			int c0 = path[p + 1].cum + 1;
-
-			if (--count == 0) {
-				count = 255;
-				++c0;
-			}
-
-			int len = path[p].len;
-			if (len >= MIN_MATCH) {
-				int c1 = 1 << 30;
-
-				const int j = MAX(len - 255, MIN_MATCH);
-				for (int i = len; i >= j; --i) {
-					int tmp = path[p + i].cum + 3;
-
-					if (i >= (15 + MIN_MATCH)) tmp += 1 + ((i - (15 + MIN_MATCH)) / 255);
-
-					if (tmp < c1) {
-						c1 = tmp;
-						len = i;
-					}
-				}
-
-				if (c1 <= c0) {
-					path[p].cum = c1;
-					path[p].len = len;
-
-					count = 15;
-				}
-				else {
-					path[p].cum = c0;
-					path[p].len = 0;
-				}
-			}
-			else
-				path[p].cum = c0;
-		}
-
-		// Pass 3: Output the codes
-
-		int op = BLOCK_SIZE;
-		int pp = 0;
-
-		int p = 0;
-		while (p < n) {
-			if (path[p].len >= MIN_MATCH) {
-				int len = path[p].len - MIN_MATCH;
-				const int nib = MIN(len, 15);
-
-				if (pp != p) {
-					const int run = p - pp;
-					if (run >= 15) {
-						g_buf[op++] = (15 << 4) + nib;
-
-						int j = run - 15;
-						for (; j >= 255; j -= 255) g_buf[op++] = 255;
-						g_buf[op++] = j;
-					}
-					else
-						g_buf[op++] = (run << 4) + nib;
-
-					wild_copy(op, pp, run);
-					op += run;
 				}
 				else
-					g_buf[op++] = nib;
+					path[p].cum = c0;
+			}
 
-				STORE_16(op, path[p].dist);
-				op += 2;
+			// Pass 3: Output the codes
 
-				if (len >= 15) {
-					len -= 15;
-					for (; len >= 255; len -= 255) g_buf[op++] = 255;
-					g_buf[op++] = len;
+			int op = BLOCK_SIZE;
+			int pp = 0;
+
+			int p = 0;
+			while (p < n) {
+				if (path[p].len >= MIN_MATCH) {
+					int len = path[p].len - MIN_MATCH;
+					const int nib = MIN(len, 15);
+
+					if (pp != p) {
+						const int run = p - pp;
+						if (run >= 15) {
+							g_buf[op++] = (15 << 4) + nib;
+
+							int j = run - 15;
+							for (; j >= 255; j -= 255) g_buf[op++] = 255;
+							g_buf[op++] = j;
+						}
+						else
+							g_buf[op++] = (run << 4) + nib;
+
+						wild_copy(op, pp, run);
+						op += run;
+					}
+					else
+						g_buf[op++] = nib;
+
+					STORE_16(op, path[p].dist);
+					op += 2;
+
+					if (len >= 15) {
+						len -= 15;
+						for (; len >= 255; len -= 255) g_buf[op++] = 255;
+						g_buf[op++] = len;
+					}
+
+					p += path[p].len;
+
+					pp = p;
 				}
-
-				p += path[p].len;
-
-				pp = p;
+				else
+					++p;
 			}
-			else
-				++p;
-		}
 
-		if (pp != p) {
-			const int run = p - pp;
-			if (run >= 15) {
-				g_buf[op++] = 15 << 4;
+			if (pp != p) {
+				const int run = p - pp;
+				if (run >= 15) {
+					g_buf[op++] = 15 << 4;
 
-				int j = run - 15;
-				for (; j >= 255; j -= 255) g_buf[op++] = 255;
-				g_buf[op++] = j;
+					int j = run - 15;
+					for (; j >= 255; j -= 255) g_buf[op++] = 255;
+					g_buf[op++] = j;
+				}
+				else
+					g_buf[op++] = run << 4;
+
+				wild_copy(op, pp, run);
+				op += run;
 			}
-			else
-				g_buf[op++] = run << 4;
 
-			wild_copy(op, pp, run);
-			op += run;
+			const int comp_len = op - BLOCK_SIZE;
+			writeData(&comp_len, sizeof(comp_len), output, outputIndex);
+			writeData(&g_buf[BLOCK_SIZE], comp_len, output, outputIndex);
+
+			// fprintf(stderr, "%lld -> %lld\r", _ftelli64(g_in), _ftelli64(g_out));
 		}
-
-		const int comp_len = op - BLOCK_SIZE;
-		writeData(&comp_len, sizeof(comp_len), output, outputIndex);
-		writeData(&g_buf[BLOCK_SIZE], comp_len, output, outputIndex);
-
-		// fprintf(stderr, "%lld -> %lld\r", _ftelli64(g_in), _ftelli64(g_out));
+		return outputIndex;
 	}
-	return outputIndex;
 }
 
 #if 0
