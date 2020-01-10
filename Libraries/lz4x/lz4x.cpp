@@ -88,12 +88,14 @@ namespace {
 		return size;
 	}
 
-	void compress(const int max_chain) {
+	int compress(const char *input, int inputSize, char *output, const int max_chain) {
 		static int head[HASH_SIZE];
 		static int tail[WINDOW_SIZE];
 
+		int outputIndex = 0;
+		int inputIndex = 0;
 		int n;
-		while ((n = fread(g_buf, 1, BLOCK_SIZE, g_in)) > 0) {
+		while ((n = readData(g_buf, BLOCK_SIZE, input, inputIndex, inputSize)) > 0) {
 			for (int i = 0; i < HASH_SIZE; ++i) head[i] = NIL;
 
 			int op = BLOCK_SIZE;
@@ -192,11 +194,12 @@ namespace {
 			}
 
 			const int comp_len = op - BLOCK_SIZE;
-			fwrite(&comp_len, 1, sizeof(comp_len), g_out);
-			fwrite(&g_buf[BLOCK_SIZE], 1, comp_len, g_out);
+			writeData(&comp_len, sizeof(comp_len), output, outputIndex);
+			writeData(&g_buf[BLOCK_SIZE], comp_len, output, outputIndex);
 
-			fprintf(stderr, "%lld -> %lld\r", _ftelli64(g_in), _ftelli64(g_out));
+			// fprintf(stderr, "%lld -> %lld\r", _ftelli64(g_in), _ftelli64(g_out));
 		}
+		return outputIndex;
 	}
 
 	int compress_optimal(const char *input, int inputSize, char *output) {
@@ -477,7 +480,7 @@ int LZ4_compressBound(int inputSize) {
 }
 
 int LZ4_compress_default(const char *source, char *dest, int sourceSize, int maxDestSize) {
-	return compress_optimal(source, sourceSize, dest);
+	return compress(source, sourceSize, dest, WINDOW_SIZE);
 }
 
 #if 0
