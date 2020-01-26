@@ -247,6 +247,8 @@ void writeHDR(Image image, const char *filename) {
 	}
 }
 
+void writeBMP(FILE *file, Image image);
+
 void writeK(int width, int height, const char *format, char *data, int size, const char *filename) {
 	FILE *file = fopen(filename, "wb");
 
@@ -412,6 +414,11 @@ int main(int argc, char **argv) {
 	}
 	else if (format == "jpg" || format == "jpeg") {
 		writeJPEG(image, to.c_str());
+	}
+	else if (format == "bmp") {
+		FILE *file = fopen(to.c_str(), "wb");
+		writeBMP(file, image);
+		fclose(file);
 	}
 	else if (format == "hdr") {
 		writeHDR(image, to.c_str());
