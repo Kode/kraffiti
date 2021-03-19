@@ -25,8 +25,8 @@ jobs:
       with:
         usesh: true
         mem: 2048
-        prepare: pkg install -y node alsa-lib libXinerama mesa-libs libXi gcc
-        run: node Kinc/make --compile
+        prepare: pkg install -y node alsa-lib libXinerama mesa-libs libXi
+        run: node Kinc/make --compile --compiler clang
     - name: Get kraffiti_bin
       run: git clone https://github.com/Kode/kraffiti_bin.git
     - name: Copy binary
