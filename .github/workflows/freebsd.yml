@@ -4,6 +4,7 @@ on:
   push:
     branches:
     - master
+    - FreeBSD-Build
   pull_request:
     branches:
     - master
@@ -12,7 +13,7 @@ jobs:
   build:
 
     runs-on: macos-latest
-
+    name: FreeBSD build
     steps:
     - uses: actions/checkout@v1
     - name: Get Submodules
