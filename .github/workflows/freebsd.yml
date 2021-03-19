@@ -21,9 +21,9 @@ jobs:
     - name: Get Kinc
       run: git clone --recursive https://github.com/Kode/Kinc.git
     - name: Change to own submodule url
-      run: git -C Kinc config --file=.gitmodules submodule.kincmake.url https://github.com/tcdude/kincmake.git
+      run: git -C Kinc config --file=.gitmodules submodule.Tools/kincmake.url https://github.com/tcdude/kincmake.git
     - name: Change to FreeBSD-Build branch
-      run: git -C Kinc config --file=.gitmodules submodule.kincmake.branch FreeBSD-Build
+      run: git -C Kinc config --file=.gitmodules submodule.Tools/kincmake.branch FreeBSD-Build
     - name: Sync submodule
       run: git -C Kinc submodule sync
     - name: Update submodule
