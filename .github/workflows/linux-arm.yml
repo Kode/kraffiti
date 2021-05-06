@@ -78,9 +78,9 @@ jobs:
       - name: Get kraffiti_bin
         run: git clone https://github.com/Kode/kraffiti_bin.git
       - name: Copy armv6 binary
-        run: cp "${PWD}/artifacts/kraffiti-linux-armv6" kraffiti_bin/kraffiti-linux-armv6 && git -C kraffiti_bin add kraffiti-linux-armv6 && echo "BUILDARCH=armv6" >> $GITHUB_ENV || echo "Not a armv6 run"
+        run: cp "${PWD}/artifacts/kraffiti-linux-armv6" kraffiti_bin/kraffiti-linuxarm && git -C kraffiti_bin add kraffiti-linuxarm && echo "BUILDARCH=armv6" >> $GITHUB_ENV || echo "Not a armv6 run"
       - name: Copy aarch64 binary
-        run: cp "${PWD}/artifacts/kraffiti-linux-aarch64" kraffiti_bin/kraffiti-linux-aarch64 && git -C kraffiti_bin add kraffiti-linux-aarch64 && echo "BUILDARCH=aarch64" >> $GITHUB_ENV || echo "Not a aarch64 run"
+        run: cp "${PWD}/artifacts/kraffiti-linux-aarch64" kraffiti_bin/kraffiti-linuxaarch64 && git -C kraffiti_bin add kraffiti-linuxaarch64 && echo "BUILDARCH=aarch64" >> $GITHUB_ENV || echo "Not a aarch64 run"
       - name: Set name
         run: git config --global user.name "Robbot"
       - name: Set email
