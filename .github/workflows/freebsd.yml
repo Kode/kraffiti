@@ -4,6 +4,7 @@ on:
   push:
     branches:
     - master
+    - FreeBSD-Build
   pull_request:
     branches:
     - master
@@ -11,7 +12,7 @@ on:
 jobs:
   build:
 
-    runs-on: macos-latest
+    runs-on: macos-10.15
     name: FreeBSD build
     steps:
     - uses: actions/checkout@v1
@@ -25,7 +26,7 @@ jobs:
       with:
         usesh: true
         mem: 2048
-        prepare: pkg install -y node alsa-lib libXinerama mesa-libs libXi
+        prepare: pkg install -y node10 alsa-lib libXinerama mesa-libs libXi
         run: node Kinc/make --compile --compiler clang
     - name: Get kraffiti_bin
       run: git clone https://github.com/Kode/kraffiti_bin.git
