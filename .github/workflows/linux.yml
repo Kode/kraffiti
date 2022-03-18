@@ -23,12 +23,8 @@ jobs:
       run: git submodule update --init --recursive
     - name: Get Kinc
       run: git clone --recursive https://github.com/Kode/Kinc.git
-    - name: Get Node.js
-      run: git clone https://github.com/Kode/nodejs_bin.git --depth 1
-    - name: Setup Node.js
-      run: nodejs_bin/copysysbin.sh
     - name: Compile
-      run: nodejs_bin/node Kinc/make --compile
+      run: ./Kinc/make --compile
     - name: Get kraffiti_bin
       run: git clone https://github.com/Kode/kraffiti_bin.git
     - name: Copy binary
@@ -53,7 +49,7 @@ jobs:
         ROBBOT_PASS: ${{ secrets.ROBBOT_PASS }}
     - name: Pull
       if: steps.commit.outcome == 'success' && steps.push1.outcome != 'success'
-      run: git -C kraffiti_bin pull
+      run: git -C kraffiti_bin pull --no-rebase
     - name: Push binary again
       if: steps.commit.outcome == 'success' && steps.push1.outcome != 'success'
       continue-on-error: true
