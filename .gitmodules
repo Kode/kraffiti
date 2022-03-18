@@ -1,4 +1,4 @@
 [submodule "Libraries/lz4"]
 	path = Libraries/lz4
 	url = https://github.com/Kode/lz4.git
-	branch = master
+	branch = main
