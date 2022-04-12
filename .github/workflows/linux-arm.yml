@@ -72,7 +72,7 @@ jobs:
             cp build/Release/kraffiti "/artifacts/kraffiti"
 
       - name: Get binary-repository
-        run: git clone https://github.com/Kode/${repo_name}.git
+        run: git clone https://github.com/Kode/$repo_name.git
       - name: Copy binary
         run: cp "${PWD}/artifacts/kraffiti" ${repo_name}/kraffiti && git -C ${repo_name} add kraffiti
       - name: Set name
@@ -92,7 +92,7 @@ jobs:
         id: push1
         if: steps.commit.outcome == 'success'
         continue-on-error: true
-        run: git -C ${repo_name} push https://Kode-Robbot:$ROBBOT_PASS@github.com/Kode/${repo_name}.git main --tags
+        run: git -C ${repo_name} push https://Kode-Robbot:$ROBBOT_PASS@github.com/Kode/$repo_name.git main --tags
         env:
           ROBBOT_PASS: ${{ secrets.ROBBOT_PASS }}
       - name: Pull
@@ -101,6 +101,6 @@ jobs:
       - name: Push binary again
         if: steps.commit.outcome == 'success' && steps.push1.outcome != 'success'
         continue-on-error: true
-        run: git -C ${repo_name} push https://Kode-Robbot:$ROBBOT_PASS@github.com/Kode/${repo_name}.git main --tags
+        run: git -C ${repo_name} push https://Kode-Robbot:$ROBBOT_PASS@github.com/Kode/$repo_name.git main --tags
         env:
           ROBBOT_PASS: ${{ secrets.ROBBOT_PASS }}
