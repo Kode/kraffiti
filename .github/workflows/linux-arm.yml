@@ -4,6 +4,7 @@ on:
   push:
     branches:
     - main
+    - test
   pull_request:
     branches:
     - main
@@ -20,11 +21,11 @@ jobs:
           - arch: aarch64
             distro: stretch
           - arch: armv6
-            distro: jessie
+            distro: stretch
 
     steps:
       - uses: actions/checkout@v2.1.0
-      - uses: uraimo/run-on-arch-action@v2.0.9
+      - uses: uraimo/run-on-arch-action@v2
         name: Build artifact
         id: build
         with:
