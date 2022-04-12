@@ -1,4 +1,4 @@
-name: Linux-ARM
+name: Linux (ARM)
 
 on:
   push:
@@ -19,8 +19,12 @@ jobs:
         include:
           - arch: aarch64
             distro: buster
+            env:
+              repo_name: "KincTools_linux_arm64"
           - arch: armv7
             distro: buster
+            env:
+              repo_name: "KincTools_linux_arm"
 
     steps:
       - uses: actions/checkout@v2.1.0
@@ -41,10 +45,6 @@ jobs:
           # Mount the artifacts directory as /artifacts in the container
           dockerRunArgs: |
             --volume "${PWD}/artifacts:/artifacts"
-
-          # Pass the correct artifact name
-          env: | # YAML, but pipe character is necessary
-            artifact_name: kraffiti-linux-${{ matrix.arch }}
 
           # The shell to run commands with in the container
           shell: /bin/bash
@@ -69,38 +69,38 @@ jobs:
             echo " * Compile"
             ./Kinc/make --compile
             echo " * Copying artifact"
-            cp build/Release/kraffiti "/artifacts/${artifact_name}"
+            cp build/Release/kraffiti "/artifacts/kraffiti"
 
-      - name: Get kraffiti_bin
-        run: git clone https://github.com/Kode/kraffiti_bin.git
-      - name: Copy armv6 binary
-        run: cp "${PWD}/artifacts/kraffiti-linux-armv6" kraffiti_bin/kraffiti-linuxarm && git -C kraffiti_bin add kraffiti-linuxarm && echo "BUILDARCH=armv6" >> $GITHUB_ENV || echo "Not an armv6 run"
-      - name: Copy aarch64 binary
-        run: cp "${PWD}/artifacts/kraffiti-linux-aarch64" kraffiti_bin/kraffiti-linuxaarch64 && git -C kraffiti_bin add kraffiti-linuxaarch64 && echo "BUILDARCH=aarch64" >> $GITHUB_ENV || echo "Not an aarch64 run"
+      - name: Get binary-repository
+        run: git clone https://github.com/Kode/${repo_name}.git
+      - name: Copy binary
+        run: cp "${PWD}/artifacts/kraffiti" ${repo_name}/kraffiti && git -C ${repo_name} add kraffiti
       - name: Set name
         run: git config --global user.name "Robbot"
       - name: Set email
         run: git config --global user.email "robbot2019@robdangero.us"
+      - name: Add binary
+        run: git -C ${repo_name} add .
       - name: Commit binary
         id: commit
         continue-on-error: true
-        run: git -C kraffiti_bin commit -a -m "Update Linux-$BUILDARCH binary to $GITHUB_SHA."
+        run: git -C ${repo_name} commit -a -m "Update binary to $GITHUB_SHA."
       - name: Tag binary
         if: steps.commit.outcome == 'success'
-        run: git -C kraffiti_bin tag linux_${BUILDARCH}_$GITHUB_SHA
+        run: git -C ${repo_name} tag $GITHUB_SHA
       - name: Push binary
         id: push1
         if: steps.commit.outcome == 'success'
         continue-on-error: true
-        run: git -C kraffiti_bin push https://Kode-Robbot:$ROBBOT_PASS@github.com/Kode/kraffiti_bin.git main --tags
+        run: git -C ${repo_name} push https://Kode-Robbot:$ROBBOT_PASS@github.com/Kode/${repo_name}.git main --tags
         env:
           ROBBOT_PASS: ${{ secrets.ROBBOT_PASS }}
       - name: Pull
         if: steps.commit.outcome == 'success' && steps.push1.outcome != 'success'
-        run: git -C kraffiti_bin pull --no-rebase
+        run: git -C ${repo_name} pull --no-rebase
       - name: Push binary again
         if: steps.commit.outcome == 'success' && steps.push1.outcome != 'success'
         continue-on-error: true
-        run: git -C kraffiti_bin push https://Kode-Robbot:$ROBBOT_PASS@github.com/Kode/kraffiti_bin.git main --tags
+        run: git -C ${repo_name} push https://Kode-Robbot:$ROBBOT_PASS@github.com/Kode/${repo_name}.git main --tags
         env:
           ROBBOT_PASS: ${{ secrets.ROBBOT_PASS }}
