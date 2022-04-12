@@ -19,9 +19,9 @@ jobs:
       matrix:
         include:
           - arch: aarch64
-            distro: stretch
+            distro: buster
           - arch: armv6
-            distro: stretch
+            distro: buster
 
     steps:
       - uses: actions/checkout@v2.1.0
