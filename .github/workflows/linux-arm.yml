@@ -18,13 +18,13 @@ jobs:
       matrix:
         include:
           - arch: aarch64
-            distro: stretch
-          - arch: armv6
-            distro: jessie
+            distro: buster
+          - arch: armv7
+            distro: buster
 
     steps:
       - uses: actions/checkout@v2.1.0
-      - uses: uraimo/run-on-arch-action@v2.0.9
+      - uses: uraimo/run-on-arch-action@v2
         name: Build artifact
         id: build
         with:
@@ -65,7 +65,7 @@ jobs:
             echo " * Get Submodules"
             git submodule update --init --recursive
             echo " * Get Kinc"
-            git clone --recursive https://github.com/Kode/Kinc.git
+            git clone --recursive --depth 1 https://github.com/Kode/Kinc.git
             echo " * Compile"
             ./Kinc/make --compile
             echo " * Copying artifact"
