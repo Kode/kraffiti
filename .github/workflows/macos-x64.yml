@@ -32,7 +32,7 @@ jobs:
     - name: Commit binary
       id: commit
       continue-on-error: true
-      run: git -C KincTools_macos_x64 commit -a -m "Update binary to $GITHUB_SHA."
+      run: git -C KincTools_macos_x64 commit -a -m "Update kraffiti binary to $GITHUB_SHA."
     - name: Tag binary
       if: steps.commit.outcome == 'success'
       run: git -C KincTools_macos_x64 tag kraffiti_$GITHUB_SHA
