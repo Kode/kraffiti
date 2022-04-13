@@ -72,7 +72,7 @@ jobs:
       - name: Get binary-repository
         run: git clone https://github.com/Kode/${{ matrix.repo }}.git
       - name: Copy binary
-        run: cp "${PWD}/artifacts/kraffiti" ${{ matrix.repo }}/kraffiti && git -C ${{ matrix.repo }} add kraffiti
+        run: cp "${PWD}/artifacts/kraffiti" ${{ matrix.repo }}/kraffiti
       - name: Set name
         run: git config --global user.name "Robbot"
       - name: Set email
