@@ -62,10 +62,10 @@ jobs:
           run: |
             echo " * Get Submodules"
             git submodule update --init --recursive
-            echo " * Get Kinc"
-            git clone --recursive --depth 1 https://github.com/Kode/Kinc.git
+            echo " * Get KincTools"
+            git clone https://github.com/Kode/${{ matrix.repo }}.git
             echo " * Compile"
-            ./Kinc/make --compile
+            ./${{ matrix.repo }}/kmake --compile
             echo " * Copying artifact"
             cp build/Release/kraffiti "/artifacts/kraffiti"
 
