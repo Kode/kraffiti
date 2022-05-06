@@ -69,8 +69,6 @@ jobs:
             echo " * Copying artifact"
             cp build/Release/kraffiti "/artifacts/kraffiti"
 
-      - name: Get binary-repository
-        run: git clone https://github.com/Kode/${{ matrix.repo }}.git
       - name: Copy binary
         run: cp "${PWD}/artifacts/kraffiti" ${{ matrix.repo }}/kraffiti
       - name: Set name
