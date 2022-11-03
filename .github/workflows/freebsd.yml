@@ -21,7 +21,7 @@ jobs:
       run: git clone https://github.com/Kode/KincTools_freebsd_x64.git
     - name: Compile in FreeBSD VM
       id: build
-      uses: vmactions/freebsd-vm@v0.1.6
+      uses: vmactions/freebsd-vm@v0
       with:
         usesh: false
         mem: 2048
