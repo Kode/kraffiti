@@ -4,7 +4,6 @@ on:
   push:
     branches:
     - main
-    - freebsd-action-fix
   pull_request:
     branches:
     - main
