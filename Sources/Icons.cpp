@@ -63,11 +63,11 @@ namespace {
 	}
 }
 
-void writeIcoHeader(FILE *file) {
+void writeIcoHeader(FILE *file, int imageCount) {
 	fputc(0, file);
 	fputc(0, file);                                   // Reserved. Must always be 0.
 	write(file, convertShortToByteArrayLE((short)1)); // Specifies image type: 1 for icon (.ICO) image, 2 for cursor (.CUR) image. Other values are invalid.
-	write(file, convertShortToByteArrayLE((short)8)); // Specifies number of images in the file.
+	write(file, convertShortToByteArrayLE((short)imageCount)); // Specifies number of images in the file.
 }
 
 void writeIconDirEntry(FILE *file, int width, int height, int offset) {
@@ -160,10 +160,10 @@ int getBMPSize(int width, int height) {
 	return width * height * 4 + bmpHeaderSize;
 }
 
-void windowsIcon(Image image, const char *filename) {
+void windowsIcon(Image image, bool small, const char *filename) {
 	FILE *file = fopen(filename, "wb");
 
-	writeIcoHeader(file);
+	writeIcoHeader(file, small ? 6 : 8);
 
 	int iconOffset = iconHeaderSize + iconDirEntrySize * 8;
 	writeIconDirEntry(file, 16, 16, iconOffset);
@@ -178,9 +178,11 @@ void windowsIcon(Image image, const char *filename) {
 	iconOffset += getBMPSize(40, 40);
 	writeIconDirEntry(file, 48, 48, iconOffset);
 	iconOffset += getBMPSize(48, 48);
-	writeIconDirEntry(file, 64, 64, iconOffset);
-	iconOffset += getBMPSize(64, 64);
-	writeIconDirEntry(file, 256, 256, iconOffset);
+	if (!small) {
+		writeIconDirEntry(file, 64, 64, iconOffset);
+		iconOffset += getBMPSize(64, 64);
+		writeIconDirEntry(file, 256, 256, iconOffset);
+	}
 
 	Image scaled = scaleKeepAspect(image, 16, 16, true);
 	writeBMPIcon(file, scaled);
@@ -200,22 +202,24 @@ void windowsIcon(Image image, const char *filename) {
 	scaled = scaleKeepAspect(image, 48, 48, true);
 	writeBMPIcon(file, scaled);
 
-	scaled = scaleKeepAspect(image, 64, 64, true);
-	writeBMPIcon(file, scaled);
+	if (!small) {
+		scaled = scaleKeepAspect(image, 64, 64, true);
+		writeBMPIcon(file, scaled);
 
-	scaled = scaleKeepAspect(image, 256, 256, true);
-	png_image pngimage = {0};
-	pngimage.version = PNG_IMAGE_VERSION;
-	pngimage.opaque = NULL;
-	pngimage.width = scaled.width;
-	pngimage.height = scaled.height;
-	pngimage.format = PNG_FORMAT_RGBA;
-	pngimage.flags = 0;
-	png_image_write_to_stdio(&pngimage, file, 0, scaled.pixels, scaled.stride, NULL);
+		scaled = scaleKeepAspect(image, 256, 256, true);
+		png_image pngimage = {0};
+		pngimage.version = PNG_IMAGE_VERSION;
+		pngimage.opaque = NULL;
+		pngimage.width = scaled.width;
+		pngimage.height = scaled.height;
+		pngimage.format = PNG_FORMAT_RGBA;
+		pngimage.flags = 0;
+		png_image_write_to_stdio(&pngimage, file, 0, scaled.pixels, scaled.stride, NULL);
 
-	std::vector<byte> pngSize = convertIntToByteArrayLE(static_cast<int>(ftell(file)) - iconOffset);
-	fseek(file, iconHeaderSize + iconDirEntrySize * 7 + 8, SEEK_SET);
-	for (int i = 0; i < 4; ++i) fputc(pngSize[i], file);
+		std::vector<byte> pngSize = convertIntToByteArrayLE(static_cast<int>(ftell(file)) - iconOffset);
+		fseek(file, iconHeaderSize + iconDirEntrySize * 7 + 8, SEEK_SET);
+		for (int i = 0; i < 4; ++i) fputc(pngSize[i], file);
+	}
 
 	fclose(file);
 }

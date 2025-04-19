@@ -283,6 +283,7 @@ int main(int argc, char **argv) {
 	bool donothing = false;
 	bool keepaspect = false;
 	bool topowerofto = false;
+	bool small = false;
 	unsigned backgroundColor = 0;
 	unsigned transparentColor = 0;
 	int width = -1;
@@ -336,6 +337,9 @@ int main(int argc, char **argv) {
 		}
 		else if (arg == "donothing") {
 			donothing = true;
+		}
+		else if (arg == "small") {
+			small = true;
 		}
 		else {
 			// Unknown parameter
@@ -424,7 +428,7 @@ int main(int argc, char **argv) {
 		writeHDR(image, to.c_str());
 	}
 	else if (format == "ico") {
-		windowsIcon(image, to.c_str());
+		windowsIcon(image, small, to.c_str());
 	}
 	else if (format == "icns") {
 		macIcon(image, to.c_str());
