@@ -40,7 +40,7 @@ jobs:
     - name: Get KoreTools_linux_x64
       run: git clone https://github.com/Kode/KoreTools_linux_x64.git
     - name: Copy binary
-      run: cp /home/runner/work/kraffiti/kraffiti/build/Release/kraffiti KoreTools_linux_x64/kraffiti
+      run: cp /home/runner/work/kraffiti/kraffiti/build/release/kraffiti KoreTools_linux_x64/kraffiti
     - name: Set name
       run: git config --global user.name "Robbot"
     - name: Set email
@@ -103,7 +103,7 @@ jobs:
     - name: Get KoreTools_linux_arm64
       run: git clone https://github.com/Kode/KoreTools_linux_arm64.git
     - name: Copy binary
-      run: cp /home/runner/work/kraffiti/kraffiti/build/Release/kraffiti KoreTools_linux_arm64/kraffiti
+      run: cp /home/runner/work/kraffiti/kraffiti/build/release/kraffiti KoreTools_linux_arm64/kraffiti
     - name: Set name
       run: git config --global user.name "Robbot"
     - name: Set email
@@ -167,7 +167,7 @@ jobs:
     - name: Get KoreTools_linux_arm
       run: git clone https://github.com/Kode/KoreTools_linux_arm.git
     - name: Copy binary
-      run: cp /home/runner/work/kraffiti/kraffiti/build/Release/kraffiti KoreTools_linux_arm/kraffiti
+      run: cp /home/runner/work/kraffiti/kraffiti/build/release/kraffiti KoreTools_linux_arm/kraffiti
     - name: Set name
       run: git config --global user.name "Robbot"
     - name: Set email

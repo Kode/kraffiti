@@ -22,7 +22,7 @@ jobs:
     - name: Compile
       run: ./KoreTools_macos/kmake --compile
     - name: Copy binary
-      run: cp build/build/Release/kraffiti KoreTools_macos/kraffiti
+      run: cp build/build/release/kraffiti KoreTools_macos/kraffiti
     - name: Set name
       run: git config --global user.name "Robbot"
     - name: Set email
