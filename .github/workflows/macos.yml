@@ -50,7 +50,7 @@ jobs:
       env:
         ROBBOT_PASS: ${{ secrets.ROBBOT_PASS }}
 
-build-arm64:
+  build-arm64:
     runs-on: macOS-latest
     
     steps:
